@@ -558,15 +558,15 @@ void xsum_small::display()
               << (sacc->NaN ? "  NaN" : "")
               << "\n";
 
-    for (int i = XSUM_SCHUNKS - 1, dots = 0; i >= 0; i--)
+    for (int i = XSUM_SCHUNKS - 1, dots = 0; i >= 0; --i)
     {
         if (sacc->chunk[i] == 0)
         {
             if (!dots)
             {
+                dots = 1;
                 std::cout << "            ...\n";
             }
-            dots = 1;
         }
         else
         {
