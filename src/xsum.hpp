@@ -1,5 +1,5 @@
-#ifndef EXACTSUM_HPP
-#define EXACTSUM_HPP
+#ifndef XSUM_HPP
+#define XSUM_HPP
 
 #include <cstdio>
 #include <cstdlib>
@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
+#include <bitset>
 
 /* CONSTANTS DEFINING THE FLOATING POINT FORMAT. */
 
@@ -331,7 +332,6 @@ constexpr int OPT_SIMPLE_SQNORM = 1;
 constexpr int OPT_SIMPLE_DOT = 1;
 constexpr int OPT_KAHAN_SUM = 0;
 
-static void pbinary_int64(std::int64_t const v, int const n);
 static void pbinary_double(double const d);
 
 /* FUNCTIONS FOR DOUBLE AND OTHER INEXACT SUMMATION. */
@@ -487,16 +487,14 @@ xsum_flt xsum_small::round()
         std::cout << "Rounding small accumulator\n";
     }
 
-    xsum_small_accumulator *sacc = _sacc.get();
-
     /* See if we have a NaN from one of the numbers being a NaN, in which
        case we return the NaN with largest payload. */
 
-    union fpunion u;
+    fpunion u;
 
-    if (sacc->NaN != 0)
+    if (_sacc->NaN != 0)
     {
-        u.intv = sacc->NaN;
+        u.intv = _sacc->NaN;
         return u.fltv;
     }
 
@@ -506,9 +504,9 @@ xsum_flt xsum_small::round()
        overflows with opposite sign, since there is no real ambiguity in
        such a case. */
 
-    if (sacc->Inf != 0)
+    if (_sacc->Inf != 0)
     {
-        u.intv = sacc->Inf;
+        u.intv = _sacc->Inf;
         return u.fltv;
     }
 
@@ -529,7 +527,7 @@ xsum_flt xsum_small::round()
         display();
     }
 
-    xsum_int ivalue = sacc->chunk[i];
+    xsum_int ivalue = _sacc->chunk[i];
 
     /* Handle a possible denormalized number, including zero. */
 
@@ -561,7 +559,7 @@ xsum_flt xsum_small::round()
         }
         else
         {
-            u.intv = (ivalue << (XSUM_LOW_MANTISSA_BITS - 1)) + (sacc->chunk[0] >> 1);
+            u.intv = (ivalue << (XSUM_LOW_MANTISSA_BITS - 1)) + (_sacc->chunk[0] >> 1);
             if (u.intv < 0)
             {
                 u.intv = -u.intv;
@@ -620,7 +618,7 @@ xsum_flt xsum_small::round()
     int j = i - 1;
 
     /* must exist, since denormalized if i==0 */
-    xsum_schunk lower = sacc->chunk[j];
+    xsum_schunk lower = _sacc->chunk[j];
 
     if (more >= XSUM_LOW_MANTISSA_BITS)
     {
@@ -636,7 +634,7 @@ xsum_flt xsum_small::round()
 
         --j;
 
-        lower = ((j < 0) ? 0 : sacc->chunk[j]);
+        lower = ((j < 0) ? 0 : _sacc->chunk[j]);
     }
 
     ivalue += lower >> (XSUM_LOW_MANTISSA_BITS - more);
@@ -780,7 +778,7 @@ xsum_flt xsum_small::round()
     {
         --j;
 
-        if (sacc->chunk[j] != 0)
+        if (_sacc->chunk[j] != 0)
         {
             lower = 1;
             break;
@@ -912,11 +910,11 @@ void xsum_small::display()
         {
             std::cout << std::setw(5) << i << " " << std::setw(5)
                       << static_cast<int>((i << XSUM_LOW_EXP_BITS) - XSUM_EXP_BIAS - XSUM_MANTISSA_BITS)
-                      << " ";
-            pbinary_int64(static_cast<std::int64_t>(sacc->chunk[i] >> 32), XSUM_SCHUNK_BITS - 32);
-            std::cout << " ";
-            pbinary_int64(static_cast<std::int64_t>(sacc->chunk[i] & 0xffffffff), 32);
-            std::cout << "\n";
+                      << " "
+                      << std::bitset<XSUM_SCHUNK_BITS - 32>(static_cast<std::int64_t>(sacc->chunk[i] >> 32))
+                      << " "
+                      << std::bitset<32>(static_cast<std::int64_t>(sacc->chunk[i] & 0xffffffff))
+                      << "\n";
             dots = 0;
         }
     }
@@ -1221,11 +1219,11 @@ inline void xsum_small::add_no_carry(xsum_flt const value)
     {
         std::cout << "ADD +" << std::setprecision(17)
                   << static_cast<double>(value) << "\n     ";
-        pbinary_double((double)value);
+        pbinary_double(static_cast<double>(value));
         std::cout << "\n";
     }
 
-    union fpunion u;
+    fpunion u;
 
     /* Extract exponent and mantissa. */
     u.fltv = value;
@@ -1271,11 +1269,11 @@ inline void xsum_small::add_no_carry(xsum_flt const value)
 
     if (xsum_debug)
     {
-        std::cout << "  high exp: ";
-        pbinary_int64(high_exp, XSUM_HIGH_EXP_BITS);
-        std::cout << "  low exp: ";
-        pbinary_int64(low_exp, XSUM_LOW_EXP_BITS);
-        std::cout << "\n";
+        std::cout << "  high exp: "
+                  << std::bitset<XSUM_HIGH_EXP_BITS>(high_exp)
+                  << "  low exp: "
+                  << std::bitset<XSUM_LOW_EXP_BITS>(low_exp)
+                  << "\n";
     }
 
     xsum_schunk *const chunk_ptr = _sacc.get()->chunk + high_exp;
@@ -1298,11 +1296,11 @@ inline void xsum_small::add_no_carry(xsum_flt const value)
 
         if (xsum_debug)
         {
-            std::cout << " -high man: ";
-            pbinary_int64(-high_mantissa, XSUM_MANTISSA_BITS);
-            std::cout << "\n  -low man: ";
-            pbinary_int64(-low_mantissa, XSUM_LOW_MANTISSA_BITS);
-            std::cout << "\n";
+            std::cout << " -high man: "
+                      << std::bitset<XSUM_MANTISSA_BITS>(-high_mantissa)
+                      << "\n  -low man: "
+                      << std::bitset<XSUM_LOW_MANTISSA_BITS>(-low_mantissa)
+                      << "\n";
         }
     }
     else
@@ -1312,11 +1310,11 @@ inline void xsum_small::add_no_carry(xsum_flt const value)
 
         if (xsum_debug)
         {
-            std::cout << "  high man: ";
-            pbinary_int64(high_mantissa, XSUM_MANTISSA_BITS);
-            std::cout << "\n   low man: ";
-            pbinary_int64(low_mantissa, XSUM_LOW_MANTISSA_BITS);
-            std::cout << "\n";
+            std::cout << "  high man: "
+                      << std::bitset<XSUM_MANTISSA_BITS>(high_mantissa)
+                      << "\n   low man: "
+                      << std::bitset<XSUM_LOW_MANTISSA_BITS>(low_mantissa)
+                      << "\n";
         }
     }
 }
@@ -1980,14 +1978,14 @@ void xsum_large::display()
         }
         else
         {
-            std::cout << (i & 0x800 ? '-' : '+') << std::setw(4)
+            std::cout << (i & 0x800 ? '-' : '+')
+                      << std::setw(4)
                       << (i & 0x7ff) << " "
-                      << std::setw(5) << _lacc->count[i] << " ";
-            pbinary_int64(static_cast<std::int64_t>(_lacc->chunk[i]) >> 32, XSUM_LCHUNK_BITS - 32);
-            std::cout << " ";
-            pbinary_int64(static_cast<std::int64_t>(_lacc->chunk[i]) & 0xffffffff, 32);
-            std::cout << "\n";
-
+                      << std::setw(5) << _lacc->count[i] << " "
+                      << std::bitset<XSUM_LCHUNK_BITS - 32>(static_cast<std::int64_t>(_lacc->chunk[i]) >> 32)
+                      << " "
+                      << std::bitset<32>(static_cast<std::int64_t>(_lacc->chunk[i]) & 0xffffffff)
+                      << "\n";
             dots = 0;
         }
     }
@@ -2083,15 +2081,15 @@ void xsum_large::add_lchunk_to_small(xsum_expint const ix)
 
         if (xsum_debug)
         {
-            std::cout << "chunk div: low ";
-            pbinary_int64(low_chunk, 64);
-            std::cout << "\n"
-                      << "           mid ";
-            pbinary_int64(mid_chunk, 64);
-            std::cout << "\n"
-                      << "          high ";
-            pbinary_int64(high_chunk, 64);
-            std::cout << "\n";
+            std::cout << "chunk div: low "
+                      << std::bitset<64>(low_chunk)
+                      << "\n"
+                      << "           mid "
+                      << std::bitset<64>(mid_chunk)
+                      << "\n"
+                      << "           high "
+                      << std::bitset<64>(high_chunk)
+                      << "\n";
 
             /* Add or subtract the three parts of the mantissa from three small
                accumulator chunks, according to the sign that is part of the index. */
@@ -2099,13 +2097,13 @@ void xsum_large::add_lchunk_to_small(xsum_expint const ix)
                       << static_cast<int>(high_exp) << ", "
                       << static_cast<int>(high_exp) + 1 << ", "
                       << static_cast<int>(high_exp) + 2
-                      << " before add or subtract:\n";
-            pbinary_int64(lacc_sacc->chunk[high_exp], 64);
-            std::cout << "\n";
-            pbinary_int64(lacc_sacc->chunk[high_exp + 1], 64);
-            std::cout << "\n";
-            pbinary_int64(lacc_sacc->chunk[high_exp + 2], 64);
-            std::cout << "\n";
+                      << " before add or subtract:\n"
+                      << std::bitset<64>(lacc_sacc->chunk[high_exp])
+                      << "\n"
+                      << std::bitset<64>(lacc_sacc->chunk[high_exp + 1])
+                      << "\n"
+                      << std::bitset<64>(lacc_sacc->chunk[high_exp + 2])
+                      << "\n";
         }
 
         if (ix & (1 << XSUM_EXP_BITS))
@@ -2127,13 +2125,13 @@ void xsum_large::add_lchunk_to_small(xsum_expint const ix)
                       << static_cast<int>(high_exp) << ", "
                       << static_cast<int>(high_exp) + 1 << ", "
                       << static_cast<int>(high_exp) + 2
-                      << " after add or subtract:\n";
-            pbinary_int64(lacc_sacc->chunk[high_exp], 64);
-            std::cout << "\n";
-            pbinary_int64(lacc_sacc->chunk[high_exp + 1], 64);
-            std::cout << "\n";
-            pbinary_int64(lacc_sacc->chunk[high_exp + 2], 64);
-            std::cout << "\n";
+                      << " after add or subtract:\n"
+                      << std::bitset<64>(lacc_sacc->chunk[high_exp])
+                      << "\n"
+                      << std::bitset<64>(lacc_sacc->chunk[high_exp + 1])
+                      << "\n"
+                      << std::bitset<64>(lacc_sacc->chunk[high_exp + 2])
+                      << "\n";
         }
 
         /* The above additions/subtractions reduce by one the number we can
@@ -2170,15 +2168,6 @@ inline xsum_large_accumulator *xsum_large::get() { return _lacc.get(); }
 
 // Helper functions
 
-/* PRINT 64-BIT INTEGER IN BINARY.  Prints only the low-order n bits. */
-void pbinary_int64(std::int64_t const v, int const n)
-{
-    for (int i = n - 1; i >= 0; --i)
-    {
-        std::cout << static_cast<int>((v >> i) & 1);
-    }
-}
-
 /* PRINT DOUBLE-PRECISION FLOATING POINT VALUE IN BINARY. */
 void pbinary_double(double const d)
 {
@@ -2188,16 +2177,12 @@ void pbinary_double(double const d)
         std::int64_t i;
     } u;
 
-    std::int64_t exp;
-
     u.f = d;
 
-    std::cout << (u.i < 0 ? "- " : "+ ");
+    std::int64_t const exp = (u.i >> 52) & 0x7ff;
 
-    exp = (u.i >> 52) & 0x7ff;
-
-    pbinary_int64(exp, 11);
-
+    std::cout << (u.i < 0 ? "- " : "+ ")
+              << std::bitset<11>(exp);
     if (exp == 0)
     {
         std::cout << " (denorm) ";
@@ -2210,8 +2195,7 @@ void pbinary_double(double const d)
     {
         std::cout << " (+" << std::setfill('0') << std::setw(6) << static_cast<int>(exp - 1023) << ") ";
     }
-
-    pbinary_int64(u.i & 0xfffffffffffffL, 52);
+    std::cout << std::bitset<52>(u.i & 0xfffffffffffffL);
 }
 
 /* SUM A VECTOR WITH DOUBLE FP ACCUMULATOR. */
@@ -2439,4 +2423,4 @@ xsum_flt xsum_dot_double_not_ordered(xsum_flt const *vec1, xsum_flt const *vec2,
     return static_cast<xsum_flt>(s1 + s2);
 }
 
-#endif // EXACTSUM_HPP
+#endif // XSUM_HPP
