@@ -825,7 +825,8 @@ int xsum_small::carry_propagate()
     {
         _sacc->chunk[uix] = 0;
         --uix;
-        _sacc->chunk[uix] += static_cast<xsum_schunk>(-1) << XSUM_LOW_MANTISSA_BITS;
+        // _sacc->chunk[uix] += static_cast<xsum_schunk>(-1) << XSUM_LOW_MANTISSA_BITS;
+        _sacc->chunk[uix] += static_cast<xsum_lchunk>(-1) << XSUM_LOW_MANTISSA_BITS;
     }
 
     /* We can now add one less than the total allowed terms before the
