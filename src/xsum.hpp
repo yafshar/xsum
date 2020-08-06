@@ -512,30 +512,34 @@ xsum_flt xsum_small::round() {
         }
 
         /* Check if it is actually a denormalized number.  It always is if only
-           the lowest chunk is non-zero.  If the lowest non-zero low chunk is
+           the lowest chunk is non-zero. If the highest non-zero chunk is
            the next-to-lowest, we check the magnitude of the absolute value.
            Note that the real exponent is 1 (not 0), so we need to shift right
            by 1 here, which also means there will be no overflow from the left
            shift below (but must view absolute value as unsigned). */
 
         if (i == 0) {
-            u.intv = ((ivalue > 0) ? ivalue : -ivalue);
+            u.intv = ivalue >= 0 ? ivalue : -ivalue;
             u.intv >>= 1;
             if (ivalue < 0) {
                 u.intv |= XSUM_SIGN_MASK;
             }
             return u.fltv;
         } else {
-            u.intv = (ivalue << (XSUM_LOW_MANTISSA_BITS - 1)) + (_sacc->chunk[0] >> 1);
-            if (u.intv < 0) {
-                u.intv = -u.intv;
-            }
+            /* Note: Left shift of -ve number is undefined, so do a multiply
+               instead, which is probably optimized to a shift. */
 
-            if (u.uintv < static_cast<xsum_uint>(1) << XSUM_MANTISSA_BITS) {
-                if (ivalue < 0) {
-                    u.intv |= XSUM_SIGN_MASK;
+            u.intv = ivalue * (static_cast<xsum_int>(1) << (XSUM_LOW_MANTISSA_BITS - 1)) + (_sacc->chunk[0] >> 1);
+
+            if (u.intv < 0) {
+                if (u.intv > -(static_cast<xsum_int>(1) << XSUM_MANTISSA_BITS)) {
+                    u.intv = (-u.intv) | XSUM_SIGN_MASK;
+                    return u.fltv;
                 }
-                return u.fltv;
+            } else {
+                if (u.uintv < static_cast<xsum_uint>(1) << XSUM_MANTISSA_BITS) {
+                    return u.fltv;
+                }
             }
             /* otherwise, it's not actually denormalized, so fall through to below */
         }
@@ -552,7 +556,7 @@ xsum_flt xsum_small::round() {
 
     u.fltv = static_cast<xsum_flt>(ivalue);
 
-    int e = (u.intv >> XSUM_MANTISSA_BITS) & XSUM_EXP_MASK;
+    int e = (u.uintv >> XSUM_MANTISSA_BITS) & XSUM_EXP_MASK;
     int more = 1 + XSUM_MANTISSA_BITS + XSUM_EXP_BIAS - e;
 
     if (xsum_debug) {
@@ -569,7 +573,9 @@ xsum_flt xsum_small::round() {
        we can later move into 'ivalue' if it turns out that one more bit is
        needed. */
 
-    ivalue <<= more;
+    /* multiply, since << of negative undefined */
+    ivalue *= static_cast<xsum_int>(1) << more;
+
     if (xsum_debug) {
         std::cout << "after ivalue <<= more, ivalue: "
                   << std::hex << std::setfill('0') << std::setw(16)
@@ -618,7 +624,8 @@ xsum_flt xsum_small::round() {
 
     if (ivalue < 0 && ((-ivalue) & (static_cast<xsum_int>(1) << (XSUM_MANTISSA_BITS + 1))) == 0) {
         int const pos = static_cast<xsum_schunk>(1) << (XSUM_LOW_MANTISSA_BITS - 1 - more);
-        ivalue <<= 1;
+        /* note that left shift undefined if ivalue is negative */
+        ivalue *= 2;
         if (lower & pos) {
             ivalue |= 1;
             lower &= ~pos;
@@ -1041,12 +1048,12 @@ int xsum_small::carry_propagate() {
     while (_sacc->chunk[uix] == -1 && uix > 0) {
         _sacc->chunk[uix] = 0;
         --uix;
-        _sacc->chunk[uix] += static_cast<xsum_schunk>(static_cast<xsum_lchunk>(-1) << XSUM_LOW_MANTISSA_BITS);
+        // @yafshar solution
+        // _sacc->chunk[uix] += static_cast<xsum_schunk>(static_cast<xsum_lchunk>(-1) << XSUM_LOW_MANTISSA_BITS);
         // Neal solution
-        // _sacc->chunk[uix] += static_cast<xsum_schunk>(-1) << XSUM_LOW_MANTISSA_BITS;
         // A shift of a negative number is undefined according to the standard, so
         // do a multiply - it's all presumably constant-folded by the compiler.
-        // _sacc->chunk[uix] += static_cast<xsum_schunk>(-1) * (static_cast<xsum_schunk>(1) << XSUM_LOW_MANTISSA_BITS );
+        _sacc->chunk[uix] += static_cast<xsum_schunk>(-1) * (static_cast<xsum_schunk>(1) << XSUM_LOW_MANTISSA_BITS);
     }
 
     /* We can now add one less than the total allowed terms before the
@@ -1152,7 +1159,7 @@ inline void xsum_small::add_no_carry(xsum_flt const value) {
        subtract from) this chunk and the next higher chunk (which always
        exists since there are three extra ones at the top). */
 
-    xsum_int const low_mantissa = (mantissa << low_exp) & XSUM_LOW_MANTISSA_MASK;
+    xsum_int const low_mantissa = (static_cast<xsum_uint>(mantissa) << low_exp) & XSUM_LOW_MANTISSA_MASK;
     xsum_int const high_mantissa = mantissa >> (XSUM_LOW_MANTISSA_BITS - low_exp);
 
     /* Add or subtract to or from the two affected chunks. */
