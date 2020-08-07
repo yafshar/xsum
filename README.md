@@ -18,6 +18,14 @@ It has an `op` handle that can subsequently be used in `MPI_Reduce`,
 ## Example
 
 ```cpp
+#include <mpi.h>
+
+#include <iomanip>
+#include <iostream>
+
+#include <xsum/xsum.hpp>
+#include <xsum/myxsum.hpp>
+
 int main() {
     // Initialize the MPI environment
     MPI_Init(NULL, NULL);
