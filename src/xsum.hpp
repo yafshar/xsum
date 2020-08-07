@@ -80,6 +80,16 @@ constexpr int XSUM_LCOUNT_BITS = (64 - XSUM_MANTISSA_BITS);
 /* # of chunks in large accumulator */
 constexpr int XSUM_LCHUNKS = (1 << (XSUM_EXP_BITS + 1));
 
+/* DEBUG FLAG.  Set to non-zero for debug ouptut.  Ignored unless xsum.c is compiled with -DDEBUG. */
+constexpr int xsum_debug = 0;
+
+/* UNION OF FLOATING AND INTEGER TYPES. */
+union fpunion {
+    xsum_flt fltv;
+    xsum_int intv;
+    xsum_uint uintv;
+};
+
 /* CLASSES FOR EXACT SUMMATION. */
 
 struct xsum_small_accumulator {
@@ -96,6 +106,8 @@ struct xsum_small_accumulator {
 class xsum_small {
    public:
     xsum_small();
+    explicit xsum_small(xsum_small_accumulator const &sacc);
+    explicit xsum_small(xsum_small_accumulator const *sacc);
     ~xsum_small();
     explicit xsum_small(xsum_small &&other);
     xsum_small &operator=(xsum_small &&other);
@@ -108,6 +120,9 @@ class xsum_small {
      * value (which in fact will call this function).
      */
     void add(xsum_flt const value);
+    void add(xsum_small_accumulator const &value);
+    void add(xsum_small_accumulator const *value);
+    void add(xsum_small const &value);
 
     /*
      * ADD A VECTOR OF FLOATING-POINT NUMBERS TO A SMALL ACCUMULATOR.  Mixes
@@ -117,7 +132,7 @@ class xsum_small {
      * so to be safe, adding the last value has to be done separately at
      * the end.
      */
-    void add(xsum_flt const *__restrict__ vec, xsum_length const n);
+    void add(xsum_flt const *vec, xsum_length const n);
 
     /*
      * ADD SQUARED NORM OF VECTOR OF FLOATING-POINT NUMBERS TO SMALL ACCUMULATOR.
@@ -127,7 +142,7 @@ class xsum_small {
      * so to be safe, adding the last value has to be done separately at
      * the end.
      */
-    void add_sqnorm(xsum_flt const *__restrict__ vec, xsum_length const n);
+    void add_sqnorm(xsum_flt const *vec, xsum_length const n);
 
     /*
      * ADD DOT PRODUCT OF VECTORS FLOATING-POINT NUMBERS TO SMALL ACCUMULATOR.
@@ -137,7 +152,7 @@ class xsum_small {
      * so to be safe, adding the last value has to be done separately at
      * the end.
      */
-    void add_dot(xsum_flt const *__restrict__ vec1, xsum_flt const *__restrict__ vec2, xsum_length const n);
+    void add_dot(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n);
 
     /*
      * RETURN THE RESULT OF ROUNDING A SMALL ACCUMULATOR.  The rounding mode
@@ -155,7 +170,7 @@ class xsum_small {
 
     inline int n_remaining_adds();
 
-    inline xsum_small_accumulator *get();
+    inline xsum_small_accumulator *get() const noexcept;
 
     /*!
      * PROPAGATE CARRIES TO NEXT CHUNK IN A SMALL ACCUMULATOR.  Needs to
@@ -192,6 +207,7 @@ class xsum_small {
      * substantial inefficiency).
      */
     inline void add_no_carry(xsum_flt const value);
+    inline void add_no_carry(xsum_small_accumulator const &value);
 
     /*
      * ADD A VECTOR TO A SMALL ACCUMULATOR, ASSUMING NO CARRY PROPAGATION NEEDED.
@@ -200,7 +216,7 @@ class xsum_small {
      * version we can pre-fetch the next value to allow some time for memory
      * response before the value is used.
      */
-    inline void add_no_carry(xsum_flt const *__restrict__ vec, xsum_length const n);
+    inline void add_no_carry(xsum_flt const *vec, xsum_length const n);
 
     /*
      * ADD SQUARED NORM OF VECTOR TO SMALL ACCUMULATOR, ASSUME NO CARRY NEEDED.
@@ -209,7 +225,7 @@ class xsum_small {
      * OPT version we can pre-fetch the next value to allow some time for memory
      * response before the value is used.
      */
-    inline void add_sqnorm_no_carry(xsum_flt const *__restrict__ vec, xsum_length const n);
+    inline void add_sqnorm_no_carry(xsum_flt const *vec, xsum_length const n);
 
     /*
      * ADD DOT PRODUCT OF VECTORS TO SMALL ACCUMULATOR, ASSUME NO CARRY NEEDED.
@@ -218,7 +234,7 @@ class xsum_small {
      * that in the OPT version we can pre-fetch the next values to allow some time
      * for memory response before the value is used.
      */
-    inline void add_dot_no_carry(xsum_flt const *__restrict__ vec1, xsum_flt const *__restrict__ vec2,
+    inline void add_dot_no_carry(xsum_flt const *vec1, xsum_flt const *vec2,
                                  xsum_length const n);
 
    private:
@@ -233,7 +249,7 @@ struct xsum_large_accumulator {
     xsum_large_accumulator();
 
     /* Chunks making up large accumulator */
-    xsum_lchunk chunk[XSUM_LCHUNKS] = {};
+    xsum_lchunk chunk[XSUM_LCHUNKS];
     /* Counts of # adds remaining for chunks, or -1 if not used yet or special. */
     xsum_lcount count[XSUM_LCHUNKS];
     /* Bits indicate chunks in use */
@@ -247,6 +263,12 @@ struct xsum_large_accumulator {
 class xsum_large {
    public:
     xsum_large();
+    explicit xsum_large(xsum_large_accumulator const &lacc);
+    explicit xsum_large(xsum_large_accumulator const *lacc);
+    explicit xsum_large(xsum_small_accumulator const &sacc);
+    explicit xsum_large(xsum_small_accumulator const *sacc);
+    explicit xsum_large(xsum_small const &sacc);
+    explicit xsum_large(xsum_small const *sacc);
     ~xsum_large();
     explicit xsum_large(xsum_large &&other);
     xsum_large &operator=(xsum_large &&other);
@@ -259,13 +281,13 @@ class xsum_large {
     /*
      * ADD A VECTOR OF FLOATING-POINT NUMBERS TO A LARGE ACCUMULATOR.
      */
-    void add(xsum_flt const *__restrict__ vec, xsum_length const n);
+    void add(xsum_flt const *vec, xsum_length const n);
 
     /* ADD SQUARED NORM OF VECTOR OF FLOATING-POINT NUMBERS TO LARGE ACCUMULATOR. */
-    void add_sqnorm(xsum_flt const *__restrict__ vec, xsum_length const n);
+    void add_sqnorm(xsum_flt const *vec, xsum_length const n);
 
     /* ADD DOT PRODUCT OF VECTORS OF FLOATING-POINT NUMBERS TO LARGE ACCUMULATOR. */
-    void add_dot(xsum_flt const *__restrict__ vec1, xsum_flt const *__restrict__ vec2, xsum_length const n);
+    void add_dot(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n);
 
     /*
      * RETURN RESULT OF ROUNDING A LARGE ACCUMULATOR.  Rounding mode is to nearest,
@@ -275,13 +297,15 @@ class xsum_large {
      */
     xsum_flt round();
 
+    xsum_small_accumulator *round_to_small_accumulator();
+
     /* Display a large accumulator. */
     void display();
 
     /* Return number of chunks in use in large accumulator. */
     int chunks_used();
 
-    inline xsum_large_accumulator *get();
+    inline xsum_large_accumulator *get() const noexcept;
 
    private:
     /*
@@ -310,42 +334,48 @@ class xsum_large {
     std::unique_ptr<xsum_large_accumulator> _lacc;
 };
 
-/* UNION OF FLOATING AND INTEGER TYPES. */
-union fpunion {
-    xsum_flt fltv;
-    xsum_int intv;
-    xsum_uint uintv;
-};
+/* AUXILLARY FUNCTIONS */
+static int xsum_carry_propagate(xsum_small_accumulator *const sacc);
+static inline void xsum_small_add_inf_nan(xsum_small_accumulator *const sacc, xsum_int const ivalue);
+static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_flt const value);
+static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_small_accumulator const *value);
+static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_flt const *const vec, xsum_length const n);
+static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_small_accumulator const *const vec, xsum_length const n);
+static inline void xsum_add_lchunk_to_small(xsum_large_accumulator *const lacc, xsum_expint const ix);
+static inline void xsum_large_add_value_inf_nan(xsum_large_accumulator *const lacc, xsum_expint const ix, xsum_lchunk const uintv);
 
-/* DEBUG FLAG.  Set to non-zero for debug ouptut.  Ignored unless xsum.c is compiled with -DDEBUG. */
-
-constexpr int xsum_debug = 0;
-
-/* IMPLEMENTATION OPTIONS.  Can be set to either 0 or 1, whichever seems to be fastest. */
-
-/*   operations done with simple FP arithmetic?   */
-constexpr int OPT_SIMPLE_SQNORM = 1;
-constexpr int OPT_SIMPLE_DOT = 1;
-constexpr int OPT_KAHAN_SUM = 0;
+void xsum_small_add(xsum_small_accumulator *const sacc, xsum_flt const value);
+void xsum_small_add(xsum_small_accumulator *const sacc, xsum_small_accumulator const *value);
+void xsum_small_add(xsum_small_accumulator *const sacc, xsum_flt const *const vec, xsum_length const c);
+void xsum_small_add(xsum_small_accumulator *const sacc, xsum_small_accumulator const *const vec, xsum_length const n);
+xsum_flt xsum_small_round(xsum_small_accumulator *const sacc);
+void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const value);
+void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const *const vec, xsum_length const n);
+xsum_small_accumulator *xsum_large_round_to_small_accumulator(xsum_large_accumulator *const lacc);
+xsum_flt xsum_large_round(xsum_large_accumulator *const lacc);
 
 static void pbinary_double(double const d);
-
-/* FUNCTIONS FOR DOUBLE AND OTHER INEXACT SUMMATION. */
-
-xsum_flt xsum_sum_double(xsum_flt const *__restrict__ vec, xsum_length const n);
-xsum_flt xsum_sum_double_not_ordered(xsum_flt const *__restrict__ vec, xsum_length const n);
-xsum_flt xsum_sum_float128(xsum_flt const *__restrict__ vec, xsum_length const n);
-xsum_flt xsum_sum_kahan(xsum_flt const *__restrict__ vec, xsum_length const n);
-xsum_flt xsum_sqnorm_double(xsum_flt const *__restrict__ vec, xsum_length const n);
-xsum_flt xsum_sqnorm_double_not_ordered(xsum_flt const *__restrict__ vec, xsum_length const n);
-xsum_flt xsum_dot_double(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n);
-xsum_flt xsum_dot_double_not_ordered(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n);
-
 // Implementation
 
 /* INITIALIZE A SMALL ACCUMULATOR TO ZERO. */
 
 xsum_small::xsum_small() : _sacc(new xsum_small_accumulator) {}
+
+xsum_small::xsum_small(xsum_small_accumulator const &sacc) : _sacc(new xsum_small_accumulator) {
+    std::copy(sacc.chunk, sacc.chunk + XSUM_SCHUNKS, _sacc->chunk);
+    _sacc->Inf = sacc.Inf;
+    _sacc->NaN = sacc.NaN;
+    _sacc->adds_until_propagate = sacc.adds_until_propagate;
+}
+
+xsum_small::xsum_small(xsum_small_accumulator const *sacc) : _sacc(new xsum_small_accumulator) {
+    if (sacc) {
+        std::copy(sacc->chunk, sacc->chunk + XSUM_SCHUNKS, _sacc->chunk);
+        _sacc->Inf = sacc->Inf;
+        _sacc->NaN = sacc->NaN;
+        _sacc->adds_until_propagate = sacc->adds_until_propagate;
+    }
+}
 
 xsum_small::~xsum_small() {}
 
@@ -367,18 +397,48 @@ void xsum_small::reset() {
 }
 
 void xsum_small::add(xsum_flt const value) {
-    xsum_small_accumulator *sacc = _sacc.get();
-
-    if (sacc->adds_until_propagate == 0) {
+    if (_sacc->adds_until_propagate == 0) {
         carry_propagate();
     }
 
     add_no_carry(value);
 
-    sacc->adds_until_propagate -= 1;
+    --_sacc->adds_until_propagate;
 }
 
-void xsum_small::add(xsum_flt const *__restrict__ vec, xsum_length const n) {
+void xsum_small::add(xsum_small_accumulator const &value) {
+    if (_sacc->adds_until_propagate == 0) {
+        carry_propagate();
+    }
+
+    add_no_carry(value);
+
+    --_sacc->adds_until_propagate;
+}
+
+void xsum_small::add(xsum_small_accumulator const *value) {
+    if (_sacc->adds_until_propagate == 0) {
+        carry_propagate();
+    }
+
+    add_no_carry(*value);
+
+    --_sacc->adds_until_propagate;
+}
+
+void xsum_small::add(xsum_small const &xvalue) {
+    xsum_small_accumulator const value = *xvalue.get();
+
+    if (_sacc->adds_until_propagate == 0) {
+        carry_propagate();
+    }
+
+    add_no_carry(value);
+
+    --_sacc->adds_until_propagate;
+}
+
+void xsum_small::add(xsum_flt const *vec, xsum_length const n) {
     if (n == 0) {
         return;
     }
@@ -404,7 +464,7 @@ void xsum_small::add(xsum_flt const *__restrict__ vec, xsum_length const n) {
     add(*vec);
 }
 
-void xsum_small::add_sqnorm(xsum_flt const *__restrict__ vec, xsum_length const n) {
+void xsum_small::add_sqnorm(xsum_flt const *vec, xsum_length const n) {
     if (n == 0) {
         return;
     }
@@ -855,7 +915,7 @@ int xsum_small::chunks_used() {
 
 inline int xsum_small::n_remaining_adds() { return _sacc->adds_until_propagate; }
 
-inline xsum_small_accumulator *xsum_small::get() { return _sacc.get(); }
+inline xsum_small_accumulator *xsum_small::get() const noexcept { return _sacc.get(); }
 
 int xsum_small::carry_propagate() {
     if (xsum_debug) {
@@ -1017,10 +1077,8 @@ int xsum_small::carry_propagate() {
             }
         }
 
-        _sacc->chunk[i] = clow;
-        _sacc->chunk[i + 1] += chigh;
-
-        ++i;
+        _sacc->chunk[i++] = clow;
+        _sacc->chunk[i] += chigh;
     } while (i <= u);
 
     if (xsum_debug) {
@@ -1151,7 +1209,7 @@ inline void xsum_small::add_no_carry(xsum_flt const value) {
                   << "\n";
     }
 
-    xsum_schunk *const chunk_ptr = _sacc.get()->chunk + high_exp;
+    xsum_schunk *const chunk_ptr = _sacc->chunk + high_exp;
     xsum_schunk const chunk0 = chunk_ptr[0];
     xsum_schunk const chunk1 = chunk_ptr[1];
 
@@ -1189,14 +1247,41 @@ inline void xsum_small::add_no_carry(xsum_flt const value) {
     }
 }
 
-inline void xsum_small::add_no_carry(xsum_flt const *__restrict__ vec,
+inline void xsum_small::add_no_carry(xsum_small_accumulator const &value) {
+    if (value.Inf != 0) {
+        if (_sacc->Inf == 0) {
+            _sacc->Inf = value.Inf;
+        } else if (_sacc->Inf != value.Inf) {
+            fpunion u;
+            u.intv = value.Inf;
+            u.fltv = u.fltv - u.fltv;
+            _sacc->Inf = u.intv;
+        }
+        return;
+    }
+
+    if (value.NaN != 0) {
+        if ((_sacc->NaN & XSUM_MANTISSA_MASK) < (value.NaN & XSUM_MANTISSA_MASK)) {
+            _sacc->NaN = value.NaN;
+        }
+        return;
+    }
+
+    xsum_schunk *sc = _sacc->chunk;
+    xsum_schunk const *vc = value.chunk;
+    for (int i = 0; i < XSUM_SCHUNKS; ++i) {
+        sc[i] += vc[i];
+    }
+}
+
+inline void xsum_small::add_no_carry(xsum_flt const *vec,
                                      xsum_length const n) {
     for (xsum_length i = 0; i < n - 1; ++i) {
         add_no_carry(vec[i]);
     }
 }
 
-inline void xsum_small::add_sqnorm_no_carry(xsum_flt const *__restrict__ vec,
+inline void xsum_small::add_sqnorm_no_carry(xsum_flt const *vec,
                                             xsum_length const n) {
     for (xsum_length i = 0; i < n - 1; ++i) {
         xsum_flt const f = vec[i];
@@ -1205,8 +1290,8 @@ inline void xsum_small::add_sqnorm_no_carry(xsum_flt const *__restrict__ vec,
     }
 }
 
-inline void xsum_small::add_dot_no_carry(xsum_flt const *__restrict__ vec1,
-                                         xsum_flt const *__restrict__ vec2,
+inline void xsum_small::add_dot_no_carry(xsum_flt const *vec1,
+                                         xsum_flt const *vec2,
                                          xsum_length const n) {
     for (xsum_length i = 0; i < n - 1; ++i) {
         xsum_flt const f = vec1[i];
@@ -1226,6 +1311,42 @@ xsum_large_accumulator::xsum_large_accumulator() {
 }
 
 xsum_large::xsum_large() : _lacc(new xsum_large_accumulator) {}
+
+xsum_large::xsum_large(xsum_large_accumulator const &lacc) : _lacc(new xsum_large_accumulator) {
+    std::copy(lacc.chunk, lacc.chunk + XSUM_LCHUNKS, _lacc->chunk);
+    std::copy(lacc.count, lacc.count + XSUM_LCHUNKS, _lacc->count);
+    std::copy(lacc.chunks_used, lacc.chunks_used + XSUM_LCHUNKS / 64, _lacc->chunks_used);
+    _lacc->used_used = lacc.used_used;
+    _lacc->sacc = std::move(xsum_small(lacc.sacc.get()));
+}
+
+xsum_large::xsum_large(xsum_large_accumulator const *lacc) : _lacc(new xsum_large_accumulator) {
+    if (lacc) {
+        std::copy(lacc->chunk, lacc->chunk + XSUM_LCHUNKS, _lacc->chunk);
+        std::copy(lacc->count, lacc->count + XSUM_LCHUNKS, _lacc->count);
+        std::copy(lacc->chunks_used, lacc->chunks_used + XSUM_LCHUNKS / 64, _lacc->chunks_used);
+        _lacc->used_used = lacc->used_used;
+        _lacc->sacc = std::move(xsum_small(lacc->sacc.get()));
+    }
+}
+
+xsum_large::xsum_large(xsum_small_accumulator const &sacc) : _lacc(new xsum_large_accumulator) {
+    _lacc->sacc = std::move(xsum_small(sacc));
+}
+
+xsum_large::xsum_large(xsum_small_accumulator const *sacc) : _lacc(new xsum_large_accumulator) {
+    _lacc->sacc = std::move(xsum_small(sacc));
+}
+
+xsum_large::xsum_large(xsum_small const &sacc) : _lacc(new xsum_large_accumulator) {
+    _lacc->sacc = std::move(xsum_small(sacc.get()));
+}
+
+xsum_large::xsum_large(xsum_small const *sacc) : _lacc(new xsum_large_accumulator) {
+    if (sacc) {
+        _lacc->sacc = std::move(xsum_small(sacc->get()));
+    }
+}
 
 xsum_large::~xsum_large() {}
 
@@ -1252,20 +1373,16 @@ void xsum_large::add(xsum_flt const value) {
     }
 
     /* Version not manually optimized - maybe the compiler can do better. */
-
     fpunion u;
 
     /* Fetch the next number, and convert to integer form in u.uintv. */
-
     u.fltv = value;
 
     /* Isolate the upper sign+exponent bits that index the chunk. */
-
-    xsum_expint ix = u.uintv >> XSUM_MANTISSA_BITS;
+    xsum_expint const ix = u.uintv >> XSUM_MANTISSA_BITS;
 
     /* Find the count for this chunk, and subtract one. */
-
-    xsum_lcount count = _lacc->count[ix] - 1;
+    xsum_lcount const count = _lacc->count[ix] - 1;
 
     if (count < 0) {
         /* If the decremented count is negative, it's either a special
@@ -1281,7 +1398,7 @@ void xsum_large::add(xsum_flt const value) {
     }
 }
 
-void xsum_large::add(xsum_flt const *__restrict__ vec, xsum_length const n) {
+void xsum_large::add(xsum_flt const *vec, xsum_length const n) {
     if (n == 0) {
         return;
     }
@@ -1394,7 +1511,7 @@ void xsum_large::add(xsum_flt const *__restrict__ vec, xsum_length const n) {
     }
 }
 
-void xsum_large::add_sqnorm(xsum_flt const *__restrict__ vec, xsum_length const n) {
+void xsum_large::add_sqnorm(xsum_flt const *vec, xsum_length const n) {
     if (n == 0) {
         return;
     }
@@ -1508,7 +1625,7 @@ void xsum_large::add_sqnorm(xsum_flt const *__restrict__ vec, xsum_length const 
     }
 }
 
-void xsum_large::add_dot(xsum_flt const *__restrict__ vec1, xsum_flt const *__restrict__ vec2, xsum_length const n) {
+void xsum_large::add_dot(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n) {
     if (n == 0) {
         return;
     }
@@ -1646,8 +1763,8 @@ xsum_flt xsum_large::round() {
     xsum_used *p = _lacc->chunks_used;
     xsum_used *e = p + XSUM_LCHUNKS / 64;
 
-    /* Very quickly skip some unused low-order blocks of chunks by looking
-           at the used_used flags. */
+    /* Very quickly skip some unused low-order blocks of chunks
+       by looking at the used_used flags. */
 
     xsum_used uu = _lacc->used_used;
     if ((uu & 0xffffffff) == 0) {
@@ -1669,7 +1786,7 @@ xsum_flt xsum_large::round() {
     int ix;
     do {
         /* Loop to quickly find the next non-zero block of used flags, or finish
-               up if we've added all the used blocks to the small accumulator. */
+           up if we've added all the used blocks to the small accumulator. */
 
         for (;;) {
             u = *p;
@@ -1714,8 +1831,8 @@ xsum_flt xsum_large::round() {
         }
 
         /* Find and process the chunks in this block that are used.  We skip
-               forward based on the chunks_used flags until we're within eight
-               bits of a chunk that is in use. */
+           forward based on the chunks_used flags until we're within eight
+           bits of a chunk that is in use. */
 
         ix = (p - _lacc->chunks_used) << 6;
         if ((u & 0xffffffff) == 0) {
@@ -1748,6 +1865,112 @@ xsum_flt xsum_large::round() {
     /* Finish now that all blocks have been added to the small accumulator
        by calling the small accumulator rounding function. */
     return _lacc->sacc.round();
+}
+
+xsum_small_accumulator *xsum_large::round_to_small_accumulator() {
+    xsum_used const *p = _lacc->chunks_used;
+    xsum_used const *e = p + XSUM_LCHUNKS / 64;
+
+    /* Very quickly skip some unused low-order blocks of chunks
+       by looking at the used_used flags. */
+    xsum_used uu = _lacc->used_used;
+
+    if ((uu & 0xffffffff) == 0) {
+        uu >>= 32;
+        p += 32;
+    }
+    if ((uu & 0xffff) == 0) {
+        uu >>= 16;
+        p += 16;
+    }
+    if ((uu & 0xff) == 0) {
+        p += 8;
+    }
+
+    /* Loop over remaining blocks of chunks. */
+    xsum_used u;
+    int ix;
+    do {
+        /* Loop to quickly find the next non-zero block of used flags, or finish
+           up if we've added all the used blocks to the small accumulator. */
+
+        for (;;) {
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return _lacc->sacc.get();
+            }
+
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return _lacc->sacc.get();
+            }
+
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return _lacc->sacc.get();
+            }
+
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return _lacc->sacc.get();
+            }
+        }
+
+        /* Find and process the chunks in this block that are used.  We skip
+           forward based on the chunks_used flags until we're within eight
+           bits of a chunk that is in use. */
+
+        ix = (p - _lacc->chunks_used) << 6;
+        if ((u & 0xffffffff) == 0) {
+            u >>= 32;
+            ix += 32;
+        }
+
+        if ((u & 0xffff) == 0) {
+            u >>= 16;
+            ix += 16;
+        }
+
+        if ((u & 0xff) == 0) {
+            u >>= 8;
+            ix += 8;
+        }
+
+        do {
+            if (_lacc->count[ix] >= 0) {
+                add_lchunk_to_small(ix);
+            }
+
+            ++ix;
+            u >>= 1;
+        } while (u != 0);
+
+        ++p;
+    } while (p != e);
+
+    /* Finish now that all blocks have been added to the small accumulator
+       by calling the small accumulator rounding function. */
+    return _lacc->sacc.get();
 }
 
 void xsum_large::display() {
@@ -1929,9 +2152,932 @@ inline void xsum_large::add_value_inf_nan(xsum_expint const ix, xsum_lchunk cons
     }
 }
 
-inline xsum_large_accumulator *xsum_large::get() { return _lacc.get(); }
+inline xsum_large_accumulator *xsum_large::get() const noexcept { return _lacc.get(); }
 
-// Helper functions
+// AUXILLARY
+
+int xsum_carry_propagate(xsum_small_accumulator *const sacc) {
+    /* Set u to the index of the uppermost non-zero (for now) chunk, or
+       return with value 0 if there is none. */
+
+    bool found = false;
+    int u = XSUM_SCHUNKS - 1;
+    switch (XSUM_SCHUNKS & 0x3) {
+        case 3: {
+            if (sacc->chunk[u] != 0) {
+                found = true;
+                break;
+            }
+            --u;
+        }
+        case 2: {
+            if (sacc->chunk[u] != 0) {
+                found = true;
+                break;
+            }
+            --u;
+        }
+        case 1: {
+            if (sacc->chunk[u] != 0) {
+                found = true;
+                break;
+            }
+            --u;
+        }
+        case 0:;
+    }
+    do {
+        if (sacc->chunk[u - 3] |
+            sacc->chunk[u - 2] |
+            sacc->chunk[u - 1] |
+            sacc->chunk[u]) {
+            found = true;
+            break;
+        }
+        u -= 4;
+    } while (u >= 0);
+
+    if (found) {
+        while (sacc->chunk[u] == 0) {
+            --u;
+        }
+    } else {
+        sacc->adds_until_propagate = XSUM_SMALL_CARRY_TERMS - 1;
+        /* Return index of uppermost non-zero chunk. */
+        return 0;
+    }
+
+    // xsum_schunk c, clow, chigh;
+    // int i, u, uix;
+
+    /* Carry propagate, starting at the low-order chunks.  Note that the
+     loop limit of u may be increased inside the loop. */
+
+    /* indicates that a non-zero chunk has not been found yet */
+    int uix = -1;
+
+    /* Quickly skip over unused low-order chunks.  Done here at the start
+       on the theory that there are often many unused low-order chunks,
+       justifying some overhead to begin, but later stretches of unused
+       chunks may not be as large. */
+    int i = 0;
+    int const e = u - 3;
+    while (i <= e) {
+        if (sacc->chunk[i] |
+            sacc->chunk[i + 1] |
+            sacc->chunk[i + 2] |
+            sacc->chunk[i + 3]) {
+            break;
+        }
+        i += 4;
+    }
+
+    xsum_schunk c;
+
+    do {
+        /* Find the next non-zero chunk, or break out of loop if there is none. */
+        bool nonzero = false;
+
+        do {
+            c = sacc->chunk[i];
+            if (c != 0) {
+                nonzero = true;
+                break;
+            }
+            ++i;
+
+            if (i > u) {
+                break;
+            }
+
+            c = sacc->chunk[i];
+            if (c != 0) {
+                nonzero = true;
+                break;
+            }
+            ++i;
+        } while (i <= u);
+
+        if (!nonzero) {
+            break;
+        }
+
+        /* Propagate possible carry from this chunk to next chunk up. */
+        xsum_schunk const chigh = c >> XSUM_LOW_MANTISSA_BITS;
+
+        if (chigh == 0) {
+            uix = i;
+            ++i;
+            /* no need to change this chunk */
+            continue;
+        }
+
+        if (u == i) {
+            if (chigh == -1) {
+                uix = i;
+                /* don't propagate -1 into the region of all zeros above */
+                break;
+            }
+
+            /* we will change chunk[u+1], so we'll need to look at it */
+            u = i + 1;
+        }
+
+        xsum_schunk const clow = c & XSUM_LOW_MANTISSA_MASK;
+        if (clow != 0) {
+            uix = i;
+        }
+
+        /* We now change chunk[i] and add to chunk[i+1]. Note that i+1 should be
+           in range (no bigger than XSUM_CHUNKS-1) because the number of chunks
+           is big enough to hold any sum, and we do not store redundant chunks
+           with values 0 or -1 above previously non-zero chunks. */
+
+        if (xsum_debug && i + 1 >= XSUM_SCHUNKS) {
+            std::abort();
+        }
+        sacc->chunk[i++] = clow;
+        sacc->chunk[i] += chigh;
+    } while (i <= u);
+
+    /* Check again for the number being zero, since carry propagation might
+       have created zero from something that initially looked non-zero. */
+    if (uix < 0) {
+        sacc->adds_until_propagate = XSUM_SMALL_CARRY_TERMS - 1;
+        /* Return index of uppermost non-zero chunk. */
+        return 0;
+    }
+
+    /* While the uppermost chunk is negative, with value -1, combine it with
+       the chunk below (if there is one) to produce the same number but with
+       one fewer non-zero chunks. */
+
+    while (sacc->chunk[uix] == -1 && uix > 0) {
+        /* A shift of a negative number is undefined according to the standard, so
+           do a multiply - it's all presumably constant-folded by the compiler. */
+        sacc->chunk[uix--] = 0;
+        sacc->chunk[uix] += static_cast<xsum_schunk>(-1) * (static_cast<xsum_schunk>(1) << XSUM_LOW_MANTISSA_BITS);
+    }
+
+    /* We can now add one less than the total allowed terms before the
+     next carry propagate. */
+    sacc->adds_until_propagate = XSUM_SMALL_CARRY_TERMS - 1;
+
+    /* Return index of uppermost non-zero chunk. */
+    return uix;
+}
+
+inline void xsum_small_add_inf_nan(xsum_small_accumulator *const sacc, xsum_int const ivalue) {
+    xsum_int const mantissa = ivalue & XSUM_MANTISSA_MASK;
+
+    /* Inf */
+    if (mantissa == 0) {
+        /* no previous Inf */
+        if (sacc->Inf == 0) {
+            sacc->Inf = ivalue;
+        }
+        /* previous Inf was opposite sign */
+        else if (sacc->Inf != ivalue) {
+            fpunion u;
+            u.intv = ivalue;
+            /* result will be a NaN */
+            u.fltv = u.fltv - u.fltv;
+            sacc->Inf = u.intv;
+        }
+    }
+    /* NaN */
+    else {
+        /* Choose the NaN with the bigger payload and clear its sign. Using <=
+           ensures that we will choose the first NaN over the previous zero. */
+        if ((sacc->NaN & XSUM_MANTISSA_MASK) <= mantissa) {
+            sacc->NaN = ivalue & ~XSUM_SIGN_MASK;
+        }
+    }
+}
+
+inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_flt const value) {
+    /* Extract exponent and mantissa. */
+    fpunion u;
+    u.fltv = value;
+
+    xsum_int const ivalue = u.intv;
+    xsum_int mantissa = ivalue & XSUM_MANTISSA_MASK;
+    xsum_expint exp = (ivalue >> XSUM_MANTISSA_BITS) & XSUM_EXP_MASK;
+
+    /* Categorize number as normal, denormalized, or Inf/NaN according to
+       the value of the exponent field. */
+
+    /* normalized */
+    /* OR in implicit 1 bit at top of mantissa */
+    if (exp != 0 && exp != XSUM_EXP_MASK) {
+        mantissa |= static_cast<xsum_int>(1) << XSUM_MANTISSA_BITS;
+    }
+    /* zero or denormalized */
+    /* If it's a zero (positive or negative), we do nothing. */
+    else if (exp == 0) {
+        if (mantissa == 0) {
+            return;
+        }
+        /* Denormalized mantissa has no implicit 1, but exponent is 1 not 0. */
+        exp = 1;
+    }
+    /* Inf or NaN */
+    /* Just update flags in accumulator structure. */
+    else {
+        xsum_small_add_inf_nan(sacc, ivalue);
+        return;
+    }
+
+    /* Separate high part of exponent, used as index of chunk, and low
+       part of exponent, giving position within chunk. */
+
+    xsum_expint const low_exp = exp & XSUM_LOW_EXP_MASK;
+    xsum_expint const high_exp = exp >> XSUM_LOW_EXP_BITS;
+
+    xsum_schunk *chunk_ptr = sacc->chunk + high_exp;
+
+    xsum_schunk const chunk0 = chunk_ptr[0];
+    xsum_schunk const chunk1 = chunk_ptr[1];
+
+    /* Separate mantissa into two parts, after shifting, and add to (or
+       subtract from) this chunk and the next higher chunk (which always
+       exists since there are three extra ones at the top). */
+    xsum_int const low_mantissa = (static_cast<xsum_uint>(mantissa) << low_exp) & XSUM_LOW_MANTISSA_MASK;
+    xsum_int const high_mantissa = mantissa >> (XSUM_LOW_MANTISSA_BITS - low_exp);
+
+    /* Add or subtract to or from the two affected chunks. */
+    if (ivalue < 0) {
+        chunk_ptr[0] = chunk0 - low_mantissa;
+        chunk_ptr[1] = chunk1 - high_mantissa;
+    } else {
+        chunk_ptr[0] = chunk0 + low_mantissa;
+        chunk_ptr[1] = chunk1 + high_mantissa;
+    }
+}
+
+inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_small_accumulator const *value) {
+    if (value->Inf != 0) {
+        sacc->Inf = value->Inf;
+        return;
+    }
+    if (value->NaN != 0) {
+        if ((sacc->NaN & XSUM_MANTISSA_MASK) < (value->NaN & XSUM_MANTISSA_MASK)) {
+            sacc->NaN = value->NaN;
+        }
+        return;
+    }
+    xsum_schunk *sacc_chunk = sacc->chunk;
+    xsum_schunk const *value_chunk = value->chunk;
+    for (int i = 0; i < XSUM_SCHUNKS; ++i) {
+        sacc_chunk[i] += value_chunk[i];
+    }
+}
+
+inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_flt const *const vec, xsum_length const n) {
+    xsum_flt const *const f = vec;
+    for (int i = 0; i < n; ++i) {
+        xsum_add_no_carry(sacc, f[i]);
+    }
+}
+
+inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_small_accumulator const *const vec, xsum_length const n) {
+    xsum_small_accumulator const *const f = vec;
+    for (int i = 0; i < n; ++i) {
+        xsum_add_no_carry(sacc, &f[i]);
+    }
+}
+
+void xsum_small_add(xsum_small_accumulator *const sacc, xsum_flt const value) {
+    if (sacc->adds_until_propagate == 0) {
+        xsum_carry_propagate(sacc);
+    }
+
+    xsum_add_no_carry(sacc, value);
+
+    --sacc->adds_until_propagate;
+}
+
+void xsum_small_add(xsum_small_accumulator *const sacc, xsum_small_accumulator const *value) {
+    if (sacc->adds_until_propagate == 0) {
+        xsum_carry_propagate(sacc);
+    }
+
+    xsum_add_no_carry(sacc, value);
+
+    --sacc->adds_until_propagate;
+}
+
+void xsum_small_add(xsum_small_accumulator *const sacc, xsum_flt const *const vec, xsum_length const c) {
+    if (c == 0) {
+        return;
+    }
+    xsum_flt const *v = vec;
+    xsum_length n = c;
+    while (n > 1) {
+        if (sacc->adds_until_propagate == 0) {
+            xsum_carry_propagate(sacc);
+        }
+        xsum_length const m = (n - 1 <= sacc->adds_until_propagate) ? n - 1 : sacc->adds_until_propagate;
+        xsum_add_no_carry(sacc, v, m + 1);
+        sacc->adds_until_propagate -= m;
+        v += m;
+        n -= m;
+    }
+    xsum_small_add(sacc, *v);
+}
+
+void xsum_small_add(xsum_small_accumulator *const sacc, xsum_small_accumulator const *const vec, xsum_length const c) {
+    if (c == 0) {
+        return;
+    }
+    xsum_small_accumulator const *v = vec;
+    xsum_length n = c;
+    while (n > 1) {
+        if (sacc->adds_until_propagate == 0) {
+            xsum_carry_propagate(sacc);
+        }
+        xsum_length const m = (n - 1 <= sacc->adds_until_propagate) ? n - 1 : sacc->adds_until_propagate;
+        xsum_add_no_carry(sacc, v, m + 1);
+        sacc->adds_until_propagate -= m;
+        v += m;
+        n -= m;
+    }
+    xsum_small_add(sacc, v);
+}
+
+xsum_flt xsum_small_round(xsum_small_accumulator *const sacc) {
+    fpunion u;
+
+    /* See if we have a NaN from one of the numbers being a NaN, in which
+       case we return the NaN with largest payload. */
+    if (sacc->NaN != 0) {
+        u.intv = sacc->NaN;
+        return u.fltv;
+    }
+
+    /* Otherwise, if any number was infinite, we return +Inf, -Inf, or a Nan
+       (if both +Inf and -Inf occurred).  Note that we do NOT return NaN if
+       we have both an infinite number and a sum of other numbers that
+       overflows with opposite sign, since there is no real ambiguity in
+       such a case. */
+    if (sacc->Inf != 0) {
+        u.intv = sacc->Inf;
+        return u.fltv;
+    }
+
+    /* If none of the numbers summed were infinite or NaN, we proceed to
+       propagate carries, as a preliminary to finding the magnitude of
+       the sum.  This also ensures that the sign of the result can be
+       determined from the uppermost non-zero chunk.
+
+       We also find the index, i, of this uppermost non-zero chunk, as
+       the value returned by xsum_carry_propagate, and set ivalue to
+       sacc->chunk[i].  Note that ivalue will not be 0 or -1, unless
+       i is 0 (the lowest chunk), in which case it will be handled by
+       the code for denormalized numbers. */
+
+    int i = xsum_carry_propagate(sacc);
+
+    xsum_int ivalue = sacc->chunk[i];
+
+    /* Handle a possible denormalized number, including zero. */
+    if (i <= 1) {
+        /* Check for zero value, in which case we can return immediately. */
+        if (ivalue == 0) {
+            return 0.0;
+        }
+
+        /* Check if it is actually a denormalized number.  It always is if only
+           the lowest chunk is non-zero.  If the highest non-zero chunk is the
+           next-to-lowest, we check the magnitude of the absolute value.
+           Note that the real exponent is 1 (not 0), so we need to shift right
+           by 1 here, which also means there will be no overflow from the left
+           shift below (but must view absolute value as unsigned). */
+        if (i == 0) {
+            u.intv = ivalue >= 0 ? ivalue : -ivalue;
+            u.intv >>= 1;
+            if (ivalue < 0) {
+                u.intv |= XSUM_SIGN_MASK;
+            }
+            return u.fltv;
+        }
+        /* Note: Left shift of -ve number is undefined, so do a multiply instead,
+           which is probably optimized to a shift. */
+        else {
+            u.intv = ivalue * (static_cast<xsum_int>(1) << (XSUM_LOW_MANTISSA_BITS - 1)) + (sacc->chunk[0] >> 1);
+            if (u.intv < 0) {
+                if (u.intv > -(static_cast<xsum_int>(1) << XSUM_MANTISSA_BITS)) {
+                    u.intv = (-u.intv) | XSUM_SIGN_MASK;
+                    return u.fltv;
+                }
+            } else {
+                if (u.uintv < static_cast<xsum_int>(1) << XSUM_MANTISSA_BITS) {
+                    return u.fltv;
+                }
+            }
+            /* otherwise, it's not actually denormalized, so fall through to below */
+        }
+    }
+
+    /* Find the location of the uppermost 1 bit in the absolute value of the
+       upper chunk by converting it (as a signed integer) to a floating point
+       value, and looking at the exponent.  Then set 'more' to the number of
+       bits from the lower chunk (and maybe the next lower) that are needed
+       to fill out the mantissa of the result, plus an extra bit to help decide
+       on rounding.  For negative numbers, it may turn out later that we need
+       another bit because negating a negative value may carry out of the top
+       here, but not once more bits are shifted into the bottom later on. */
+
+    u.fltv = static_cast<xsum_flt>(ivalue);
+    int e = (u.uintv >> XSUM_MANTISSA_BITS) & XSUM_EXP_MASK;
+    int more = 1 + XSUM_MANTISSA_BITS + XSUM_EXP_BIAS - e;
+
+    /* Change 'ivalue' to put in 'more' bits from lower chunks into the bottom.
+       Also set 'j' to the index of the lowest chunk from which these bits came,
+       and 'lower' to the remaining bits of that chunk not now in 'ivalue'.
+       We make sure that 'lower' initially has at least one bit in it, which
+       we can later move into 'ivalue' if it turns out that one more bit is
+       needed. */
+
+    /* multiply, since << of negative undefined */
+    ivalue *= static_cast<xsum_int>(1) << more;
+    int j = i - 1;
+    /* must exist, since denormalized if i==0 */
+    xsum_schunk lower = sacc->chunk[j];
+    if (more >= XSUM_LOW_MANTISSA_BITS) {
+        more -= XSUM_LOW_MANTISSA_BITS;
+        ivalue += lower << more;
+        --j;
+        lower = j < 0 ? 0 : sacc->chunk[j];
+    }
+
+    ivalue += lower >> (XSUM_LOW_MANTISSA_BITS - more);
+    lower &= (static_cast<xsum_schunk>(1) << (XSUM_LOW_MANTISSA_BITS - more)) - 1;
+
+    /* Check for a negative 'ivalue' that when negated doesn't contain a full
+       mantissa's worth of bits, plus one to help rounding.  If so, move one
+       more bit into 'ivalue' from 'lower' (and remove it from 'lower').
+       Note that more than one additional bit will not be required because
+       xsum_carry_propagate ensures the uppermost non-zero chunk is not -1. */
+
+    if (ivalue < 0 && ((-ivalue) & (static_cast<xsum_int>(1) << (XSUM_MANTISSA_BITS + 1))) == 0) {
+        int const pos = static_cast<xsum_schunk>(1) << (XSUM_LOW_MANTISSA_BITS - 1 - more);
+        /* note that left shift undefined if ivalue is negative */
+        ivalue *= 2;
+        if (lower & pos) {
+            ivalue |= 1;
+            lower &= ~pos;
+        }
+        --e;
+    }
+
+    /* Set u.intv to have just the correct sign bit (rest zeros), and 'ivalue'
+       to now have the absolute value of the mantissa. */
+
+    if (ivalue >= 0) {
+        u.intv = 0;
+    } else {
+        ivalue = -ivalue;
+        u.intv = XSUM_SIGN_MASK;
+    }
+
+    if (xsum_debug && (ivalue >> (XSUM_MANTISSA_BITS + 1)) != 1) {
+        std::abort();
+    }
+
+    /* Round to nearest, with ties to even. At this point, 'ivalue' has the
+       absolute value of the number to be rounded, including an extra bit at
+       the bottom.  Bits below that are in 'lower' and in the chunks
+       indexed by 'j' and below.  Note that the bits in 'lower' and the chunks
+       below add to the magnitude of the remainder if the number is positive,
+       but subtract from this magnitude if the number is negative.
+
+       This code goes to done_rounding if it finds that just discarding lower
+       order bits is correct, and to round_away_from_zero if instead the
+       magnitude should be increased by one in the lowest bit. */
+
+    /* extra bit is 0 */
+    if ((ivalue & 1) == 0) {
+        goto done_rounding;
+    }
+
+    /* number is positive */
+    if (u.intv == 0) {
+        /* low bit 1 (odd) */
+        if ((ivalue & 2) != 0) {
+            goto round_away_from_zero;
+        }
+        if (lower != 0) {
+            goto round_away_from_zero;
+        }
+    }
+    /* number is negative */
+    else {
+        /* low bit 0 (even) */
+        if ((ivalue & 2) == 0) {
+            goto done_rounding;
+        }
+        if (lower != 0) {
+            goto done_rounding;
+        }
+    }
+
+    /* If we get here, 'lower' is zero.  We need to look at chunks lower down
+       to see if any are non-zero. */
+    while (j > 0) {
+        --j;
+        if (sacc->chunk[j] != 0) {
+            lower = 1;
+            break;
+        }
+    }
+
+    /* number is positive, low bit 0 (even) */
+    if (u.intv == 0) {
+        if (lower != 0) {
+            goto round_away_from_zero;
+        } else {
+            goto done_rounding;
+        }
+    }
+    /* number is negative, low bit 1 (odd) */
+    else {
+        if (lower != 0) {
+            goto done_rounding;
+        } else {
+            goto round_away_from_zero;
+        }
+    }
+
+round_away_from_zero:
+
+    /* Round away from zero, then check for carry having propagated out the
+       top, and shift if so. */
+    ivalue += 2;
+    if (ivalue & (static_cast<xsum_int>(1) << (XSUM_MANTISSA_BITS + 2))) {
+        ivalue >>= 1;
+        ++e;
+    }
+
+done_rounding:;
+
+    /* Get rid of the bottom bit that was used to decide on rounding. */
+    ivalue >>= 1;
+
+    /* Adjust to the true exponent, accounting for where this chunk is. */
+    e += (i << XSUM_LOW_EXP_BITS) - XSUM_EXP_BIAS - XSUM_MANTISSA_BITS;
+
+    /* If exponent has overflowed, change to plus or minus Inf and return. */
+    if (e >= XSUM_EXP_MASK) {
+        u.intv |= static_cast<xsum_int>(XSUM_EXP_MASK) << XSUM_MANTISSA_BITS;
+        return u.fltv;
+    }
+
+    /* Put exponent and mantissa into u.intv, which already has the sign,
+       then return u.fltv. */
+    u.intv += static_cast<xsum_int>(e) << XSUM_MANTISSA_BITS;
+
+    /* mask out the implicit 1 bit */
+    u.intv += ivalue & XSUM_MANTISSA_MASK;
+
+    if (xsum_debug && (ivalue >> XSUM_MANTISSA_BITS) != 1) {
+        std::abort();
+    }
+
+    return u.fltv;
+}
+
+inline void xsum_add_lchunk_to_small(xsum_large_accumulator *const lacc, xsum_expint const ix) {
+    // xsum_expint exp, low_exp, high_exp;
+    // xsum_uint low_chunk, mid_chunk, high_chunk;
+    // xsum_lchunk chunk;
+
+    xsum_expint const count = lacc->count[ix];
+
+    /* Add to the small accumulator only if the count is not -1, which
+       indicates a chunk that contains nothing yet. */
+    if (count >= 0) {
+        auto lacc_sacc = lacc->sacc.get();
+
+        /* Propagate carries in the small accumulator if necessary. */
+        if (lacc_sacc->adds_until_propagate == 0) {
+            xsum_carry_propagate(lacc_sacc);
+        }
+
+        /* Get the chunk we will add.  Note that this chunk is the integer sum
+           of entire 64-bit floating-point representations, with sign, exponent,
+           and mantissa, but we want only the sum of the mantissas. */
+        xsum_lchunk chunk = lacc->chunk[ix];
+
+        /* If we added the maximum number of values to 'chunk', the sum of
+           the sign and exponent parts (all the same, equal to the index) will
+           have overflowed out the top, leaving only the sum of the mantissas.
+           If the count of how many more terms we could have summed is greater
+           than zero, we therefore add this count times the index (shifted to
+           the position of the sign and exponent) to get the unwanted bits to
+           overflow out the top. */
+        if (count > 0) {
+            chunk += static_cast<xsum_lchunk>(count * ix) << XSUM_MANTISSA_BITS;
+        }
+
+        /* Find the exponent for this chunk from the low bits of the index,
+           and split it into low and high parts, for accessing the small
+           accumulator.  Noting that for denormalized numbers where the
+           exponent part is zero, the actual exponent is 1 (before subtracting
+           the bias), not zero. */
+
+        xsum_expint low_exp;
+        xsum_expint high_exp;
+
+        xsum_expint const exp = ix & XSUM_EXP_MASK;
+        if (exp == 0) {
+            low_exp = 1;
+            high_exp = 0;
+        } else {
+            low_exp = exp & XSUM_LOW_EXP_MASK;
+            high_exp = exp >> XSUM_LOW_EXP_BITS;
+        }
+
+        /* Split the mantissa into three parts, for three consecutive chunks in
+           the small accumulator.  Except for denormalized numbers, add in the sum
+           of all the implicit 1 bits that are above the actual mantissa bits. */
+        xsum_uint const low_chunk = (chunk << low_exp) & XSUM_LOW_MANTISSA_MASK;
+        xsum_uint mid_chunk = chunk >> (XSUM_LOW_MANTISSA_BITS - low_exp);
+
+        /* normalized */
+        if (exp != 0) {
+            mid_chunk += static_cast<xsum_lchunk>((1 << XSUM_LCOUNT_BITS) - count) << (XSUM_MANTISSA_BITS - XSUM_LOW_MANTISSA_BITS + low_exp);
+        }
+
+        xsum_uint const high_chunk = mid_chunk >> XSUM_LOW_MANTISSA_BITS;
+        mid_chunk &= XSUM_LOW_MANTISSA_MASK;
+
+        /* Add or subtract the three parts of the mantissa from three small
+           accumulator chunks, according to the sign that is part of the index. */
+
+        if (ix & (1 << XSUM_EXP_BITS)) {
+            lacc_sacc->chunk[high_exp] -= low_chunk;
+            lacc_sacc->chunk[high_exp + 1] -= mid_chunk;
+            lacc_sacc->chunk[high_exp + 2] -= high_chunk;
+        } else {
+            lacc_sacc->chunk[high_exp] += low_chunk;
+            lacc_sacc->chunk[high_exp + 1] += mid_chunk;
+            lacc_sacc->chunk[high_exp + 2] += high_chunk;
+        }
+
+        /* The above additions/subtractions reduce by one the number we can
+           do before we need to do carry propagation again. */
+        --lacc_sacc->adds_until_propagate;
+    }
+
+    /* We now clear the chunk to zero, and set the count to the number
+       of adds we can do before the mantissa would overflow.  We also
+       set the bit in chunks_used to indicate that this chunk is in use
+       (if that is enabled). */
+
+    lacc->chunk[ix] = 0;
+    lacc->count[ix] = 1 << XSUM_LCOUNT_BITS;
+    lacc->chunks_used[ix >> 6] |= static_cast<xsum_used>(1) << (ix & 0x3f);
+    lacc->used_used |= static_cast<xsum_used>(1) << (ix >> 6);
+}
+
+inline void xsum_large_add_value_inf_nan(xsum_large_accumulator *const lacc, xsum_expint const ix, xsum_lchunk const uintv) {
+    if ((ix & XSUM_EXP_MASK) == XSUM_EXP_MASK) {
+        xsum_small_add_inf_nan(lacc->sacc.get(), uintv);
+    } else {
+        xsum_add_lchunk_to_small(lacc, ix);
+        --lacc->count[ix];
+        lacc->chunk[ix] += uintv;
+    }
+}
+
+void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const value) {
+    fpunion u;
+    u.fltv = value;
+    xsum_expint const ix = u.uintv >> XSUM_MANTISSA_BITS;
+    int const count = lacc->count[ix] - 1;
+    if (count < 0) {
+        xsum_large_add_value_inf_nan(lacc, ix, u.uintv);
+    } else {
+        lacc->count[ix] = count;
+        lacc->chunk[ix] += u.uintv;
+    }
+}
+
+void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const *const vec, xsum_length const c) {
+    if (c == 0) {
+        return;
+    }
+
+    xsum_length n = c;
+    xsum_flt const *v = vec;
+
+    /* Version that's been manually optimized:  Loop unrolled, pre-fetch
+       attempted, branches eliminated, ... */
+
+    /* Unrolled loop processing two values each time around.  The loop is
+       done as two nested loops, arranged so that the inner one will have
+       no branches except for the one looping back.  This is achieved by
+       a trick for combining three tests for negativity into one.  The
+       last one or two values are not done here, so that the pre-fetching
+       will not go past the end of the array (which would probably be OK,
+       but is technically not allowed). */
+
+    fpunion u1;
+    fpunion u2;
+
+    int count1;
+    int count2;
+
+    xsum_expint ix1;
+    xsum_expint ix2;
+
+    /* leave out last one or two, terminate when negative, for trick */
+    xsum_length m = n - 3;
+
+    while (m >= 0) {
+        /* Loop processing two values at a time until we're done, or until
+           one (or both) of the values result in a chunk needing to be processed.
+           Updates are done here for both of these chunks, even though it is not
+           yet known whether these updates ought to have been done.  We hope
+           this allows for better memory pre-fetch and instruction scheduling. */
+
+        for (;;) {
+            u1.fltv = *v++;
+            u2.fltv = *v++;
+
+            ix1 = u1.uintv >> XSUM_MANTISSA_BITS;
+            count1 = lacc->count[ix1] - 1;
+            lacc->count[ix1] = count1;
+            lacc->chunk[ix1] += u1.uintv;
+
+            ix2 = u2.uintv >> XSUM_MANTISSA_BITS;
+            count2 = lacc->count[ix2] - 1;
+            lacc->count[ix2] = count2;
+            lacc->chunk[ix2] += u2.uintv;
+
+            m -= 2;
+
+            /* ... equivalent to while (count1 >= 0 && count2 >= 0 && m >= 0) */
+            if ((static_cast<xsum_length>(count1) | static_cast<xsum_length>(count2) | m) < 0) {
+                break;
+            }
+        }
+
+        /* See if we were actually supposed to update these chunks.  If not,
+           back out the changes and then process the chunks as they ought to
+           have been processed. */
+        if (count1 < 0 || count2 < 0) {
+            lacc->count[ix2] = count2 + 1;
+            lacc->chunk[ix2] -= u2.uintv;
+
+            if (count1 < 0) {
+                lacc->count[ix1] = count1 + 1;
+                lacc->chunk[ix1] -= u1.uintv;
+                xsum_large_add_value_inf_nan(lacc, ix1, u1.uintv);
+                count2 = lacc->count[ix2] - 1;
+            }
+
+            if (count2 < 0) {
+                xsum_large_add_value_inf_nan(lacc, ix2, u2.uintv);
+            } else {
+                lacc->count[ix2] = count2;
+                lacc->chunk[ix2] += u2.uintv;
+            }
+        }
+    }
+
+    /* Process the last one or two values, without pre-fetching. */
+    m += 3;
+    for (;;) {
+        u1.fltv = *v++;
+        ix1 = u1.uintv >> XSUM_MANTISSA_BITS;
+        count1 = lacc->count[ix1] - 1;
+
+        if (count1 < 0) {
+            xsum_large_add_value_inf_nan(lacc, ix1, u1.uintv);
+        } else {
+            lacc->count[ix1] = count1;
+            lacc->chunk[ix1] += u1.uintv;
+        }
+
+        --m;
+        if (m == 0) {
+            break;
+        }
+    }
+}
+
+xsum_small_accumulator *xsum_large_round_to_small_accumulator(xsum_large_accumulator *const lacc) {
+    xsum_used *p = lacc->chunks_used;
+    xsum_used *e = p + XSUM_LCHUNKS / 64;
+
+    /* Very quickly skip some unused low-order blocks of chunks by looking
+       at the used_used flags. */
+
+    xsum_used uu = lacc->used_used;
+
+    if ((uu & 0xffffffff) == 0) {
+        uu >>= 32;
+        p += 32;
+    }
+    if ((uu & 0xffff) == 0) {
+        uu >>= 16;
+        p += 16;
+    }
+    if ((uu & 0xff) == 0) {
+        p += 8;
+    }
+
+    xsum_used u;
+
+    /* Loop over remaining blocks of chunks. */
+    do {
+        /* Loop to quickly find the next non-zero block of used flags, or finish
+           up if we've added all the used blocks to the small accumulator. */
+
+        for (;;) {
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return lacc->sacc.get();
+            }
+
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return lacc->sacc.get();
+            }
+
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return lacc->sacc.get();
+            }
+
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return lacc->sacc.get();
+            }
+        }
+
+        /* Find and process the chunks in this block that are used.  We skip
+           forward based on the chunks_used flags until we're within eight
+            bits of a chunk that is in use. */
+
+        int ix = (p - lacc->chunks_used) << 6;
+
+        if ((u & 0xffffffff) == 0) {
+            u >>= 32;
+            ix += 32;
+        }
+        if ((u & 0xffff) == 0) {
+            u >>= 16;
+            ix += 16;
+        }
+        if ((u & 0xff) == 0) {
+            u >>= 8;
+            ix += 8;
+        }
+
+        do {
+            if (lacc->count[ix] >= 0) {
+                xsum_add_lchunk_to_small(lacc, ix);
+            }
+            ++ix;
+            u >>= 1;
+        } while (u != 0);
+
+        ++p;
+
+    } while (p != e);
+
+    /* Finish now that all blocks have been added to the small accumulator
+       by calling the small accumulator rounding function. */
+
+    return lacc->sacc.get();
+}
+
+xsum_flt xsum_large_round(xsum_large_accumulator *const lacc) {
+    return xsum_small_round(xsum_large_round_to_small_accumulator(lacc));
+}
 
 /* PRINT DOUBLE-PRECISION FLOATING POINT VALUE IN BINARY. */
 void pbinary_double(double const d) {
@@ -1954,196 +3100,6 @@ void pbinary_double(double const d) {
         std::cout << " (+" << std::setfill('0') << std::setw(6) << static_cast<int>(exp - 1023) << ") ";
     }
     std::cout << std::bitset<52>(u.i & 0xfffffffffffffL);
-}
-
-/* SUM A VECTOR WITH DOUBLE FP ACCUMULATOR. */
-xsum_flt xsum_sum_double(xsum_flt const *__restrict__ vec, xsum_length const n) {
-    double s = 0.0;
-    xsum_length j = 3;
-
-    for (; j < n; j += 4) {
-        s += vec[j - 3];
-        s += vec[j - 2];
-        s += vec[j - 1];
-        s += vec[j];
-    }
-
-    j -= 3;
-    for (; j < n; ++j) {
-        s += vec[j];
-    }
-
-    return static_cast<xsum_flt>(s);
-}
-
-/* SUM A VECTOR WITH FLOAT128 ACCUMULATOR. */
-
-#ifdef FLOAT128
-#include <quadmath.h>
-
-xsum_flt xsum_sum_float128(xsum_flt const *__restrict__ vec, xsum_length const n) {
-    __float128 s = 0.0;
-    for (xsum_length j = 0; j < n; j++) {
-        s += vec[j];
-    }
-    return static_cast<xsum_flt>(s);
-}
-
-#endif
-
-/* SUM A VECTOR WITH DOUBLE FP, NOT IN ORDER. */
-
-xsum_flt xsum_sum_double_not_ordered(xsum_flt const *__restrict__ vec, xsum_length const n) {
-    double s1 = 0.0;
-    double s2 = 0.0;
-
-    xsum_length j;
-    for (j = 1; j < n; j += 2) {
-        s1 += vec[j - 1];
-        s2 += vec[j];
-    }
-
-    if (j == n) {
-        s1 += vec[j - 1];
-    }
-
-    return static_cast<xsum_flt>(s1 + s2);
-}
-
-/* SUM A VECTOR WITH KAHAN'S METHOD. */
-
-xsum_flt xsum_sum_kahan(xsum_flt const *__restrict__ vec, xsum_length const n) {
-    double t;
-    double y;
-    double s = 0.0;
-    double c = 0.0;
-
-    if (OPT_KAHAN_SUM) {
-        for (xsum_length j = 1; j < n; j += 2) {
-            y = vec[j - 1] - c;
-            t = s;
-            s += y;
-            c = (s - t) - y;
-
-            y = vec[j] - c;
-            t = s;
-            s += y;
-            c = (s - t) - y;
-        }
-
-        for (xsum_length j = j - 1; j < n; ++j) {
-            y = vec[j] - c;
-            t = s;
-            s += y;
-            c = (s - t) - y;
-        }
-    } else {
-        for (xsum_length j = 0; j < n; ++j) {
-            y = vec[j] - c;
-            t = s;
-            s += y;
-            c = (s - t) - y;
-        }
-    }
-
-    return static_cast<xsum_flt>(s);
-}
-
-/* SQUARED NORM OF A VECTOR WITH DOUBLE FP ACCUMULATOR. */
-
-xsum_flt xsum_sqnorm_double(xsum_flt const *__restrict__ vec, xsum_length const n) {
-    double s = 0.0;
-
-    if (OPT_SIMPLE_SQNORM) {
-        for (xsum_length j = 3; j < n; j += 4) {
-            double const a = vec[j - 3];
-            double const b = vec[j - 2];
-            double const c = vec[j - 1];
-            double const d = vec[j];
-
-            s += a * a;
-            s += b * b;
-            s += c * c;
-            s += d * d;
-        }
-
-        for (xsum_length j = j - 3; j < n; ++j) {
-            double const a = vec[j];
-            s += a * a;
-        }
-    } else {
-        for (xsum_length j = 0; j < n; ++j) {
-            double const a = vec[j];
-            s += a * a;
-        }
-    }
-
-    return static_cast<xsum_flt>(s);
-}
-
-/* SQUARED NORM OF A VECTOR WITH DOUBLE FP, NOT IN ORDER. */
-
-xsum_flt xsum_sqnorm_double_not_ordered(xsum_flt const *__restrict__ vec, xsum_length const n) {
-    double s1 = 0.0;
-    double s2 = 0.0;
-
-    xsum_length j;
-    for (j = 1; j < n; j += 2) {
-        double const a = vec[j - 1];
-        double const b = vec[j];
-        s1 += a * a;
-        s2 += b * b;
-    }
-
-    if (j == n) {
-        double const a = vec[j - 1];
-        s1 += a * a;
-    }
-
-    return static_cast<xsum_flt>(s1 + s2);
-}
-
-/* DOT PRODUCT OF VECTORS WITH DOUBLE FP ACCUMULATOR. */
-
-xsum_flt xsum_dot_double(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n) {
-    double s = 0.0;
-    if (OPT_SIMPLE_DOT) {
-        for (xsum_length j = 3; j < n; j += 4) {
-            s += vec1[j - 3] * vec2[j - 3];
-            s += vec1[j - 2] * vec2[j - 2];
-            s += vec1[j - 1] * vec2[j - 1];
-            s += vec1[j] * vec2[j];
-        }
-
-        for (xsum_length j = j - 3; j < n; j++) {
-            s += vec1[j] * vec2[j];
-        }
-    } else {
-        for (xsum_length j = 0; j < n; j++) {
-            s += vec1[j] * vec2[j];
-        }
-    }
-
-    return static_cast<xsum_flt>(s);
-}
-
-/* DOT PRODUCT OF VECTORS WITH DOUBLE FP, NOT IN ORDER. */
-
-xsum_flt xsum_dot_double_not_ordered(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n) {
-    double s1 = 0.0;
-    double s2 = 0.0;
-
-    xsum_length j;
-    for (j = 1; j < n; j += 2) {
-        s1 += vec1[j - 1] * vec2[j - 1];
-        s2 += vec1[j] * vec2[j];
-    }
-
-    if (j == n) {
-        s1 += vec1[j - 1] * vec2[j - 1];
-    }
-
-    return static_cast<xsum_flt>(s1 + s2);
 }
 
 #endif  // XSUM_HPP
