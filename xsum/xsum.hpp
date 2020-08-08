@@ -158,6 +158,10 @@ union fpunion {
 
 /* CLASSES FOR EXACT SUMMATION. */
 
+/*!
+ * \brief small accumulator base structure
+ *
+ */
 struct xsum_small_accumulator {
     /* Chunks making up small accumulator */
     xsum_schunk chunk[XSUM_SCHUNKS] = {};
@@ -169,14 +173,53 @@ struct xsum_small_accumulator {
     int adds_until_propagate = XSUM_SMALL_CARRY_TERMS;
 };
 
+/*!
+ * \brief small accumulator
+ *
+ */
 class xsum_small {
    public:
+    /*!
+     * \brief Construct a new xsum small object
+     *
+     */
     xsum_small();
+
+    /*!
+     * \brief Construct a new xsum small object
+     *
+     * \param sacc
+     */
     explicit xsum_small(xsum_small_accumulator const &sacc);
+
+    /*!
+     * \brief Construct a new xsum small object
+     *
+     * \param sacc
+     */
     explicit xsum_small(xsum_small_accumulator const *sacc);
+
+    /*!
+     * \brief Destroy the xsum small object
+     *
+     */
     ~xsum_small();
+
+    /*!
+     * \brief Construct a new xsum small object (move construct)
+     *
+     * \param other
+     */
     explicit xsum_small(xsum_small &&other);
+
+    /*!
+     * \brief Move assignment
+     *
+     * \param other
+     * \return xsum_small&
+     */
     xsum_small &operator=(xsum_small &&other);
+
     void swap(xsum_small &other);
     void reset();
 
@@ -311,6 +354,10 @@ class xsum_small {
     std::unique_ptr<xsum_small_accumulator> _sacc;
 };
 
+/*!
+ * \brief Large accumulator base data struct
+ *
+ */
 struct xsum_large_accumulator {
     xsum_large_accumulator();
 
@@ -326,6 +373,10 @@ struct xsum_large_accumulator {
     xsum_small sacc;
 };
 
+/*!
+ * \brief Large accumulator
+ *
+ */
 class xsum_large {
    public:
     xsum_large();
@@ -402,23 +453,66 @@ class xsum_large {
 
 /* AUXILLARY FUNCTIONS */
 static int xsum_carry_propagate(xsum_small_accumulator *const sacc);
-static inline void xsum_small_add_inf_nan(xsum_small_accumulator *const sacc, xsum_int const ivalue);
-static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_flt const value);
-static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_small_accumulator const *value);
-static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_flt const *const vec, xsum_length const n);
-static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_small_accumulator const *const vec, xsum_length const n);
-static inline void xsum_add_lchunk_to_small(xsum_large_accumulator *const lacc, xsum_expint const ix);
-static inline void xsum_large_add_value_inf_nan(xsum_large_accumulator *const lacc, xsum_expint const ix, xsum_lchunk const uintv);
+static inline void xsum_small_add_inf_nan(xsum_small_accumulator *const sacc,
+                                          xsum_int const ivalue);
+static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc,
+                                     xsum_flt const value);
+static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc,
+                                     xsum_small_accumulator const *value);
+static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc,
+                                     xsum_flt const *const vec,
+                                     xsum_length const n);
+static inline void xsum_add_no_carry(xsum_small_accumulator *const sacc,
+                                     xsum_small_accumulator const *const vec,
+                                     xsum_length const n);
+static inline void xsum_add_sqnorm_no_carry(xsum_small_accumulator *const sacc,
+                                            xsum_flt const *const vec,
+                                            xsum_length const n);
+static inline void xsum_add_dot_no_carry(xsum_small_accumulator *const sacc,
+                                         xsum_flt const *const vec1,
+                                         xsum_flt const *const vec2,
+                                         xsum_length const n);
 
-void xsum_small_add(xsum_small_accumulator *const sacc, xsum_flt const value);
-void xsum_small_add(xsum_small_accumulator *const sacc, xsum_small_accumulator const *value);
-void xsum_small_add(xsum_small_accumulator *const sacc, xsum_flt const *const vec, xsum_length const c);
-void xsum_small_add(xsum_small_accumulator *const sacc, xsum_small_accumulator const *const vec, xsum_length const n);
+static inline void xsum_add_lchunk_to_small(xsum_large_accumulator *const lacc,
+                                            xsum_expint const ix);
+static inline void xsum_large_add_value_inf_nan(
+    xsum_large_accumulator *const lacc,
+    xsum_expint const ix,
+    xsum_lchunk const uintv);
+
+void xsum_small_add(xsum_small_accumulator *const sacc,
+                    xsum_flt const value);
+void xsum_small_add(xsum_small_accumulator *const sacc,
+                    xsum_small_accumulator const *value);
+void xsum_small_add(xsum_small_accumulator *const sacc,
+                    xsum_flt const *const vec,
+                    xsum_length const c);
+void xsum_small_add(xsum_small_accumulator *const sacc,
+                    xsum_small_accumulator const *const vec,
+                    xsum_length const n);
+void xsum_small_add_sqnorm(xsum_small_accumulator *const sacc,
+                           xsum_flt const *const vec,
+                           xsum_length const n);
+void xsum_small_add_dot(xsum_small_accumulator *const sacc,
+                        xsum_flt const *const vec1,
+                        xsum_flt const *const vec2,
+                        xsum_length const n);
 xsum_flt xsum_small_round(xsum_small_accumulator *const sacc);
+
 void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const value);
-void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const *const vec, xsum_length const n);
-xsum_small_accumulator *xsum_large_round_to_small_accumulator(xsum_large_accumulator *const lacc);
+void xsum_large_add(xsum_large_accumulator *const lacc,
+                    xsum_flt const *const vec,
+                    xsum_length const n);
+xsum_small_accumulator *xsum_large_round_to_small_accumulator(
+    xsum_large_accumulator *const lacc);
 xsum_flt xsum_large_round(xsum_large_accumulator *const lacc);
+void xsum_large_add_sqnorm(xsum_large_accumulator *const lacc,
+                           xsum_flt const *const vec,
+                           xsum_length const n);
+void xsum_large_add_dot(xsum_large_accumulator *const lacc,
+                        xsum_flt const *const vec1,
+                        xsum_flt const *const vec2,
+                        xsum_length const n);
 
 static void pbinary_double(double const d);
 // Implementation
@@ -2393,7 +2487,8 @@ int xsum_carry_propagate(xsum_small_accumulator *const sacc) {
     return uix;
 }
 
-inline void xsum_small_add_inf_nan(xsum_small_accumulator *const sacc, xsum_int const ivalue) {
+inline void xsum_small_add_inf_nan(xsum_small_accumulator *const sacc,
+                                   xsum_int const ivalue) {
     xsum_int const mantissa = ivalue & XSUM_MANTISSA_MASK;
 
     /* Inf */
@@ -2421,7 +2516,8 @@ inline void xsum_small_add_inf_nan(xsum_small_accumulator *const sacc, xsum_int 
     }
 }
 
-inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_flt const value) {
+inline void xsum_add_no_carry(xsum_small_accumulator *const sacc,
+                              xsum_flt const value) {
     /* Extract exponent and mantissa. */
     fpunion u;
     u.fltv = value;
@@ -2481,7 +2577,8 @@ inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_flt const
     }
 }
 
-inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_small_accumulator const *value) {
+inline void xsum_add_no_carry(xsum_small_accumulator *const sacc,
+                              xsum_small_accumulator const *value) {
     if (value->Inf != 0) {
         sacc->Inf = value->Inf;
         return;
@@ -2499,21 +2596,48 @@ inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_small_acc
     }
 }
 
-inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_flt const *const vec, xsum_length const n) {
+inline void xsum_add_no_carry(xsum_small_accumulator *const sacc,
+                              xsum_flt const *const vec,
+                              xsum_length const n) {
     xsum_flt const *const f = vec;
     for (int i = 0; i < n; ++i) {
         xsum_add_no_carry(sacc, f[i]);
     }
 }
 
-inline void xsum_add_no_carry(xsum_small_accumulator *const sacc, xsum_small_accumulator const *const vec, xsum_length const n) {
+inline void xsum_add_no_carry(xsum_small_accumulator *const sacc,
+                              xsum_small_accumulator const *const vec,
+                              xsum_length const n) {
     xsum_small_accumulator const *const f = vec;
     for (int i = 0; i < n; ++i) {
         xsum_add_no_carry(sacc, &f[i]);
     }
 }
 
-void xsum_small_add(xsum_small_accumulator *const sacc, xsum_flt const value) {
+inline void xsum_add_sqnorm_no_carry(xsum_small_accumulator *const sacc,
+                                     xsum_flt const *const vec,
+                                     xsum_length const n) {
+    xsum_flt const *v = vec;
+    for (xsum_length i = 0; i < n; ++i, ++v) {
+        xsum_flt const g = *v * *v;
+        xsum_add_no_carry(sacc, g);
+    }
+}
+
+inline void xsum_add_dot_no_carry(xsum_small_accumulator *const sacc,
+                                  xsum_flt const *const vec1,
+                                  xsum_flt const *const vec2,
+                                  xsum_length const n) {
+    xsum_flt const *v1 = vec1;
+    xsum_flt const *v2 = vec2;
+    for (xsum_length i = 0; i < n; ++i, ++v1, ++v2) {
+        xsum_flt const g = *v1 * *v2;
+        xsum_add_no_carry(sacc, g);
+    }
+}
+
+void xsum_small_add(xsum_small_accumulator *const sacc,
+                    xsum_flt const value) {
     if (sacc->adds_until_propagate == 0) {
         xsum_carry_propagate(sacc);
     }
@@ -2523,7 +2647,8 @@ void xsum_small_add(xsum_small_accumulator *const sacc, xsum_flt const value) {
     --sacc->adds_until_propagate;
 }
 
-void xsum_small_add(xsum_small_accumulator *const sacc, xsum_small_accumulator const *value) {
+void xsum_small_add(xsum_small_accumulator *const sacc,
+                    xsum_small_accumulator const *value) {
     if (sacc->adds_until_propagate == 0) {
         xsum_carry_propagate(sacc);
     }
@@ -2533,7 +2658,9 @@ void xsum_small_add(xsum_small_accumulator *const sacc, xsum_small_accumulator c
     --sacc->adds_until_propagate;
 }
 
-void xsum_small_add(xsum_small_accumulator *const sacc, xsum_flt const *const vec, xsum_length const c) {
+void xsum_small_add(xsum_small_accumulator *const sacc,
+                    xsum_flt const *const vec,
+                    xsum_length const c) {
     if (c == 0) {
         return;
     }
@@ -2552,7 +2679,9 @@ void xsum_small_add(xsum_small_accumulator *const sacc, xsum_flt const *const ve
     xsum_small_add(sacc, *v);
 }
 
-void xsum_small_add(xsum_small_accumulator *const sacc, xsum_small_accumulator const *const vec, xsum_length const c) {
+void xsum_small_add(xsum_small_accumulator *const sacc,
+                    xsum_small_accumulator const *const vec,
+                    xsum_length const c) {
     if (c == 0) {
         return;
     }
@@ -2569,6 +2698,57 @@ void xsum_small_add(xsum_small_accumulator *const sacc, xsum_small_accumulator c
         n -= m;
     }
     xsum_small_add(sacc, v);
+}
+
+void xsum_small_add_sqnorm(xsum_small_accumulator *const sacc,
+                           xsum_flt const *const vec,
+                           xsum_length const c) {
+    if (c == 0) {
+        return;
+    }
+
+    xsum_flt const *v = vec;
+    xsum_length n = c;
+    while (n > 1) {
+        if (sacc->adds_until_propagate == 0) {
+            xsum_carry_propagate(sacc);
+        }
+
+        xsum_length const m = n - 1 <= sacc->adds_until_propagate ? n - 1 : sacc->adds_until_propagate;
+        xsum_add_sqnorm_no_carry(sacc, v, m + 1);
+        sacc->adds_until_propagate -= m;
+        v += m;
+        n -= m;
+    }
+
+    xsum_small_add(sacc, *v * *v);
+}
+
+void xsum_small_add_dot(xsum_small_accumulator *const sacc,
+                        xsum_flt const *const vec1,
+                        xsum_flt const *const vec2,
+                        xsum_length const c) {
+    if (c == 0) {
+        return;
+    }
+
+    xsum_flt const *v1 = vec1;
+    xsum_flt const *v2 = vec2;
+    xsum_length n = c;
+
+    while (n > 1) {
+        if (sacc->adds_until_propagate == 0) {
+            xsum_carry_propagate(sacc);
+        }
+        xsum_length const m = n - 1 <= sacc->adds_until_propagate ? n - 1 : sacc->adds_until_propagate;
+        xsum_add_dot_no_carry(sacc, v1, v2, m + 1);
+        sacc->adds_until_propagate -= m;
+        v1 += m;
+        v2 += m;
+        n -= m;
+    }
+
+    xsum_small_add1(sacc, *v1 * *v2);
 }
 
 xsum_flt xsum_small_round(xsum_small_accumulator *const sacc) {
@@ -2813,7 +2993,8 @@ done_rounding:;
     return u.fltv;
 }
 
-inline void xsum_add_lchunk_to_small(xsum_large_accumulator *const lacc, xsum_expint const ix) {
+inline void xsum_add_lchunk_to_small(xsum_large_accumulator *const lacc,
+                                     xsum_expint const ix) {
     // xsum_expint exp, low_exp, high_exp;
     // xsum_uint low_chunk, mid_chunk, high_chunk;
     // xsum_lchunk chunk;
@@ -2907,7 +3088,9 @@ inline void xsum_add_lchunk_to_small(xsum_large_accumulator *const lacc, xsum_ex
     lacc->used_used |= static_cast<xsum_used>(1) << (ix >> 6);
 }
 
-inline void xsum_large_add_value_inf_nan(xsum_large_accumulator *const lacc, xsum_expint const ix, xsum_lchunk const uintv) {
+inline void xsum_large_add_value_inf_nan(xsum_large_accumulator *const lacc,
+                                         xsum_expint const ix,
+                                         xsum_lchunk const uintv) {
     if ((ix & XSUM_EXP_MASK) == XSUM_EXP_MASK) {
         xsum_small_add_inf_nan(lacc->sacc.get(), uintv);
     } else {
@@ -2917,7 +3100,8 @@ inline void xsum_large_add_value_inf_nan(xsum_large_accumulator *const lacc, xsu
     }
 }
 
-void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const value) {
+void xsum_large_add(xsum_large_accumulator *const lacc,
+                    xsum_flt const value) {
     fpunion u;
     u.fltv = value;
     xsum_expint const ix = u.uintv >> XSUM_MANTISSA_BITS;
@@ -2930,12 +3114,13 @@ void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const value) {
     }
 }
 
-void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const *const vec, xsum_length const c) {
-    if (c == 0) {
+void xsum_large_add(xsum_large_accumulator *const lacc,
+                    xsum_flt const *const vec,
+                    xsum_length const n) {
+    if (n == 0) {
         return;
     }
 
-    xsum_length n = c;
     xsum_flt const *v = vec;
 
     /* Version that's been manually optimized:  Loop unrolled, pre-fetch
@@ -3034,7 +3219,8 @@ void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const *const ve
     }
 }
 
-xsum_small_accumulator *xsum_large_round_to_small_accumulator(xsum_large_accumulator *const lacc) {
+xsum_small_accumulator *xsum_large_round_to_small_accumulator(
+    xsum_large_accumulator *const lacc) {
     xsum_used *p = lacc->chunks_used;
     xsum_used *e = p + XSUM_LCHUNKS / 64;
 
@@ -3143,6 +3329,232 @@ xsum_small_accumulator *xsum_large_round_to_small_accumulator(xsum_large_accumul
 
 xsum_flt xsum_large_round(xsum_large_accumulator *const lacc) {
     return xsum_small_round(xsum_large_round_to_small_accumulator(lacc));
+}
+
+void xsum_large_add_sqnorm(xsum_large_accumulator *const lacc,
+                           xsum_flt const *const vec,
+                           xsum_length const n) {
+    if (n == 0) {
+        return;
+    }
+
+    xsum_flt const *v = vec;
+
+    /* Unrolled loop processing two squares each time around.  The loop is
+       done as two nested loops, arranged so that the inner one will have
+       no branches except for the one looping back.  This is achieved by
+       a trick for combining three tests for negativity into one.  The
+       last one or two squares are not done here, so that the pre-fetching
+       will not go past the end of the array (which would probably be OK,
+       but is technically not allowed). */
+
+    fpunion u1;
+    fpunion u2;
+
+    int count1;
+    int count2;
+
+    xsum_expint ix1;
+    xsum_expint ix2;
+
+    /* leave out last one or two, terminate when negative, for trick */
+    xsum_length m = n - 3;
+    while (m >= 0) {
+        /* Loop processing two squares at a time until we're done, or until
+           one (or both) of them result in a chunk needing to be processed.
+           Updates are done here for both of these chunks, even though it is not
+           yet known whether these updates ought to have been done.  We hope
+           this allows for better memory pre-fetch and instruction scheduling. */
+
+        for (;;) {
+            u1.fltv = *v * *v;
+            ++v;
+            u2.fltv = *v * *v;
+            ++v;
+
+            ix1 = u1.uintv >> XSUM_MANTISSA_BITS;
+            count1 = lacc->count[ix1] - 1;
+            lacc->count[ix1] = count1;
+            lacc->chunk[ix1] += u1.uintv;
+
+            ix2 = u2.uintv >> XSUM_MANTISSA_BITS;
+            count2 = lacc->count[ix2] - 1;
+            lacc->count[ix2] = count2;
+            lacc->chunk[ix2] += u2.uintv;
+
+            m -= 2;
+
+            /* ... equivalent to while (count1 >= 0 && count2 >= 0 && m >= 0) */
+            /* ... while (((xsum_length)count1 | (xsum_length)count2 | m) >= 0); */
+            if ((static_cast<xsum_length>(count1) | static_cast<xsum_length>(count2) | m) < 0) {
+                break;
+            }
+        }
+
+        /* See if we were actually supposed to update these chunks.  If not,
+           back out the changes and then process the chunks as they ought to
+           have been processed. */
+        if (count1 < 0 || count2 < 0) {
+            lacc->count[ix2] = count2 + 1;
+            lacc->chunk[ix2] -= u2.uintv;
+
+            if (count1 < 0) {
+                lacc->count[ix1] = count1 + 1;
+                lacc->chunk[ix1] -= u1.uintv;
+                xsum_large_add_value_inf_nan(lacc, ix1, u1.uintv);
+                count2 = lacc->count[ix2] - 1;
+            }
+
+            if (count2 < 0) {
+                xsum_large_add_value_inf_nan(lacc, ix2, u2.uintv);
+            } else {
+                lacc->count[ix2] = count2;
+                lacc->chunk[ix2] += u2.uintv;
+            }
+        }
+    }
+
+    /* Process the last one or two squares, without pre-fetching. */
+    m += 3;
+    for (;;) {
+        u1.fltv = *v * *v;
+        ++v;
+
+        ix1 = u1.uintv >> XSUM_MANTISSA_BITS;
+        count1 = lacc->count[ix1] - 1;
+        if (count1 < 0) {
+            xsum_large_add_value_inf_nan(lacc, ix1, u1.uintv);
+        } else {
+            lacc->count[ix1] = count1;
+            lacc->chunk[ix1] += u1.uintv;
+        }
+
+        --m;
+        if (m == 0) {
+            break;
+        }
+    }
+}
+
+void xsum_large_add_dot(xsum_large_accumulator *const lacc,
+                        xsum_flt const *const vec1,
+                        xsum_flt const *const vec2,
+                        xsum_length const n) {
+    if (n == 0) {
+        return;
+    }
+
+    xsum_flt const *v1 = vec1;
+    xsum_flt const *v2 = vec2;
+
+    /* Version that's been manually optimized:  Loop unrolled, pre-fetch
+       attempted, branches eliminated, ... */
+
+    // union fpunion u1, u2;
+    // int count1, count2;
+    // xsum_expint ix1, ix2;
+    // const xsum_flt *v1, *v2;
+    // xsum_flt f1, f2;
+    // xsum_length m;
+
+    fpunion u1;
+    fpunion u2;
+
+    int count1;
+    int count2;
+
+    xsum_expint ix1;
+    xsum_expint ix2;
+
+    /* Unrolled loop processing two products each time around.  The loop is
+       done as two nested loops, arranged so that the inner one will have
+       no branches except for the one looping back.  This is achieved by
+       a trick for combining three tests for negativity into one.  The
+       last one or two products are not done here, so that the pre-fetching
+       will not go past the end of the array (which would probably be OK,
+       but is technically not allowed). */
+
+    /* leave out last one or two, terminate when negative, for trick */
+    xsum_length m = n - 3;
+    while (m >= 0) {
+        /* Loop processing two products at a time until we're done, or until
+           one (or both) of them result in a chunk needing to be processed.
+           Updates are done here for both of these chunks, even though it is not
+           yet known whether these updates ought to have been done.  We hope
+           this allows for better memory pre-fetch and instruction scheduling. */
+
+        for (;;) {
+            u1.fltv = *v1 * *v2;
+            ++v1;
+            ++v2;
+            u2.fltv = *v1 * *v2;
+            ++v1;
+            ++v2;
+
+            ix1 = u1.uintv >> XSUM_MANTISSA_BITS;
+            count1 = lacc->count[ix1] - 1;
+            lacc->count[ix1] = count1;
+            lacc->chunk[ix1] += u1.uintv;
+
+            ix2 = u2.uintv >> XSUM_MANTISSA_BITS;
+            count2 = lacc->count[ix2] - 1;
+            lacc->count[ix2] = count2;
+            lacc->chunk[ix2] += u2.uintv;
+
+            m -= 2;
+
+            /* ... equivalent to while (count1 >= 0 && count2 >= 0 && m >= 0) */
+            /* ... while (((xsum_length)count1 | (xsum_length)count2 | m) >= 0); */
+            if ((static_cast<xsum_length>(count1) | static_cast<xsum_length>(count2) | m) < 0) {
+                break;
+            }
+        }
+
+        /* See if we were actually supposed to update these chunks.  If not,
+           back out the changes and then process the chunks as they ought to
+           have been processed. */
+
+        if (count1 < 0 || count2 < 0) {
+            lacc->count[ix2] = count2 + 1;
+            lacc->chunk[ix2] -= u2.uintv;
+
+            if (count1 < 0) {
+                lacc->count[ix1] = count1 + 1;
+                lacc->chunk[ix1] -= u1.uintv;
+                xsum_large_add_value_inf_nan(lacc, ix1, u1.uintv);
+                count2 = lacc->count[ix2] - 1;
+            }
+
+            if (count2 < 0) {
+                xsum_large_add_value_inf_nan(lacc, ix2, u2.uintv);
+            } else {
+                lacc->count[ix2] = count2;
+                lacc->chunk[ix2] += u2.uintv;
+            }
+        }
+    }
+
+    /* Process the last one or two products, without pre-fetching. */
+    m += 3;
+    for (;;) {
+        u1.fltv = *v1 * *v2;
+        ++v1;
+        ++v2;
+
+        ix1 = u1.uintv >> XSUM_MANTISSA_BITS;
+        count1 = lacc->count[ix1] - 1;
+        if (count1 < 0) {
+            xsum_large_add_value_inf_nan(lacc, ix1, u1.uintv);
+        } else {
+            lacc->count[ix1] = count1;
+            lacc->chunk[ix1] += u1.uintv;
+        }
+
+        --m;
+        if (m == 0) {
+            break;
+        }
+    }
 }
 
 /* PRINT DOUBLE-PRECISION FLOATING POINT VALUE IN BINARY. */
