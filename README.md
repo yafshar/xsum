@@ -3,19 +3,21 @@ Fast Exact Summation Using Small and Large Superaccumulators
 
 This library is an easy to use header-only cross-platform C++11 implementation
 and updates to the
-[Fast Exact Summation Using Small and Large Superaccumulators](https://www.cs.toronto.edu/~radford/xsum.software.html).
+[Fast Exact Summation Using Small and Large Superaccumulators](#neal_2015).
 
 It partly contains the methods described in the paper "Fast Exact Summation
 Using Small and Large Superaccumulators", by Radford M. Neal, available at
-[Fast Exact Summation](https://arxiv.org/abs/1505.05571), and extra summation
-functionality especially for use in High Performance Message Passing Libraries.
+[Fast Exact Summation](https://arxiv.org/abs/1505.05571), and it also includes
+extra summation functionality especially for use in High Performance Message
+Passing Libraries.
 
 It has an `op` handle that can subsequently be used in `MPI_Reduce`,
 `MPI_Allreduce`, `MPI_Reduce_scatter`, and `MPI_Scan` calls.
 
-## Installation
-
 ## Example
+
+
+### MPI example (`MPI_Allreduce`)
 
 ```cpp
 #include <mpi.h>
@@ -23,8 +25,8 @@ It has an `op` handle that can subsequently be used in `MPI_Reduce`,
 #include <iomanip>
 #include <iostream>
 
-#include <xsum/xsum.hpp>
-#include <xsum/myxsum.hpp>
+#include "xsum/xsum.hpp"
+#include "xsum/myxsum.hpp"
 
 int main() {
     // Initialize the MPI environment
@@ -76,6 +78,20 @@ int main() {
 }
 ```
 
+## References
 
-Contributer:
-- @yafshar
+<a name="neal_2015"></a>
+1. [Neal, Radford M., "Fast exact summation using small and large superaccumulators," arXiv e-prints, (2015)](https://arxiv.org/abs/1505.05571).
+2. https://www.cs.toronto.edu/~radford/xsum.software.html
+
+## Contributing
+
+Copyright (c) 2019--2020, Regents of the University of Minnesota.\
+All rights reserved.
+
+Contributors:\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Yaser Afshar
+
+## License
+
+[LGPLv2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)
