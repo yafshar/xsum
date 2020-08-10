@@ -2748,7 +2748,7 @@ void xsum_small_add_dot(xsum_small_accumulator *const sacc,
         n -= m;
     }
 
-    xsum_small_add1(sacc, *v1 * *v2);
+    xsum_small_add(sacc, *v1 * *v2);
 }
 
 xsum_flt xsum_small_round(xsum_small_accumulator *const sacc) {
