@@ -1,6 +1,27 @@
-// LGPL Version 2.1
 //
 // MYXSUM.hpp
+//
+// LGPL Version 2.1 HEADER START
+//
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+//
+// License as published by the Free Software Foundation; either
+// version 2.1 of the License, or (at your option) any later version.
+//
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+// MA 02110-1301  USA
+//
+// LGPL Version 2.1 HEADER END
+//
+
 //
 // Copyright (c) 2019--2020, Regents of the University of Minnesota.
 // All rights reserved.
@@ -8,6 +29,7 @@
 // Contributors:
 //    Yaser Afshar
 //
+
 #ifndef MYXSUM_HPP
 #define MYXSUM_HPP
 
@@ -15,6 +37,7 @@
 
 #include "xsum.hpp"
 
+namespace {
 /*!
  * \brief Create a small accumulator mpi type object
  *
@@ -68,7 +91,6 @@ void create_small_accumulator_mpi_type(MPI_Datatype &small_accumulator_type) {
                                        sizeof(xsum_schunk) * (XSUM_SCHUNKS + 1),
                                        sizeof(xsum_schunk) * (XSUM_SCHUNKS + 2)};
     MPI_Datatype const types[4] = {MPI_INT64_T, MPI_INT64_T, MPI_INT64_T, MPI_INT};
-
     MPI_Type_create_struct(4, lengths, displacements, types, &small_accumulator_type);
     MPI_Type_commit(&small_accumulator_type);
 }
@@ -81,7 +103,6 @@ MPI_Datatype create_small_accumulator_mpi_type() {
                                        sizeof(xsum_schunk) * (XSUM_SCHUNKS + 1),
                                        sizeof(xsum_schunk) * (XSUM_SCHUNKS + 2)};
     MPI_Datatype const types[4] = {MPI_INT64_T, MPI_INT64_T, MPI_INT64_T, MPI_INT};
-
     MPI_Type_create_struct(4, lengths, displacements, types, &small_accumulator_type);
     MPI_Type_commit(&small_accumulator_type);
     return small_accumulator_type;
@@ -91,7 +112,7 @@ void destroy_small_accumulator_mpi_type(MPI_Datatype &small_accumulator_type) {
     MPI_Type_free(&small_accumulator_type);
 }
 
-void myXSUM(void *invec, void *inoutvec, int *len, MPI_Datatype *datatype) {
+void myXSUM(void *invec, void *inoutvec, int *len, MPI_Datatype * /* datatype*/) {
     xsum_small_accumulator *in = static_cast<xsum_small_accumulator *>(invec);
     xsum_small_accumulator *inout = static_cast<xsum_small_accumulator *>(inoutvec);
 
@@ -102,7 +123,6 @@ void myXSUM(void *invec, void *inoutvec, int *len, MPI_Datatype *datatype) {
 
 void create_XSUM(MPI_Op &XSUM) {
     MPI_Op_create(&myXSUM, true, &XSUM);
-    return XSUM;
 }
 
 MPI_Op create_XSUM() {
@@ -114,5 +134,6 @@ MPI_Op create_XSUM() {
 void destroy_XSUM(MPI_Op &XSUM) {
     MPI_Op_free(&XSUM);
 }
+}  // namespace
 
 #endif  // MYXSUM_HPP
