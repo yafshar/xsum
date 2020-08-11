@@ -1,143 +1,538 @@
-#include <mpi.h>
+/* AUTOMATIC CORRECTNESS CHECKS FOR FUNCTIONS FOR EXACT SUMMATION. */
 
-#include <algorithm>
+/* Copyright 2015, 2018 Radford M. Neal
+
+   Permission is hereby granted, free of charge, to any person obtaining
+   a copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to
+   the following conditions:
+
+   The above copyright notice and this permission notice shall be
+   included in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+   LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#include <cmath>
+#include <cstdio>
 #include <iomanip>
-#include <iostream>
-#include <numeric>
-#include <vector>
 
 #include "../xsum/xsum.hpp"
-#include "../xsum/myxsum.hpp"
 
-// int main() {
-// xsum_large s1;
-// xsum_large s2;
-// xsum_large s3;
-// xsum_small s4;
-// xsum_small s5;
-// xsum_small s6;
+constexpr double pow2_16 = (1.0 / (1 << 16));
+constexpr double pow2_32 = (pow2_16 * pow2_16);
+constexpr double pow2_64 = (pow2_32 * pow2_32);
+constexpr double pow2_128 = (pow2_64 * pow2_64);
+constexpr double pow2_256 = (pow2_128 * pow2_128);
+constexpr double pow2_512 = (pow2_256 * pow2_256);
+constexpr double pow2_1024 = (pow2_512 * pow2_512);
 
-// double const a = -123.0e-4;
-// double const b = 1.0e-3;
-// double ss = 0.0;
+constexpr double pow2_52 = (1.0 / (1 << 22) / (1 << 30));
 
-// long double aa = -123.0e-4;
-// long double bb = 1.0e-3;
-// long double ssss = 0.0;
+constexpr double Lnormal = (2 * ((.5 / pow2_1024) - (.25 / pow2_1024) * pow2_52));
+constexpr double Snormal = (4 * pow2_1024);
+constexpr double Ldenorm = (4 * pow2_1024 - 4 * pow2_1024 * pow2_52);
+constexpr double Sdenorm = (4 * pow2_1024 * pow2_52);
 
-// for (int i = 0; i < 10; ++i) {
-//     // s1.add(a);
-//     // s1.add(b);
-//     // s2.add(a);
-//     // s3.add(b);
-//     s4.add(a);
-//     s4.add(b);
-//     s5.add(a);
-//     s6.add(b);
-//     ss += a + b;
-//     ssss += aa + bb;
-// }
+constexpr std::size_t REP1 = (1 << 23);  /* Repeat factor for second set of one term tests */
+constexpr std::size_t REP10 = (1 << 13); /* Repeat factor for second set of ten term tests */
 
-// // s2.add(*s3.get());
-// s5.add(*s6.get());
+/* Tests with one term. Answer should be the same as the term. */
 
-// xsum_large s1(*s4.get());
+xsum_flt one_term[] = {
+    1.0, /* Some unexceptional examples of normal numbers */
+    -1.0,
+    0.1,
+    -0.1,
+    3.1,
+    -3.1,
+    2.3e10,
+    -2.3e10,
+    3.2e-10,
+    -3.2e-10,
+    123e123,
+    -123e123,
+    54.11e-150,
+    -54.11e-150,
+    2 * ((.5 / pow2_128) - (.25 / pow2_128) * pow2_52), /* Mantissa all 1s */
+    -2 * ((.5 / pow2_128) + (.25 / pow2_128) * pow2_52),
+    Lnormal, /* Largest normal number */
+    -Lnormal,
+    Snormal, /* Smallest normal number */
+    -Snormal,
+    Ldenorm, /* Largest denormalized number */
+    -Ldenorm,
+    Sdenorm, /* Smallest denormalized number > 0 */
+    -Sdenorm,
+    1.23e-309, /* Other denormalized numbers */
+    -1.23e-309,
+    4.57e-314,
+    -4.57e-314,
+    9.7e-322,
+    -9.7e-322,
+    Sdenorm / pow2_64 / 2,
+    -Sdenorm / pow2_64 / 2,
+    0};
 
-// // std::cout << "s1 = " << std::setprecision(20) << s1.round() << std::endl;
-// // std::cout << "s2 = " << std::setprecision(20) << s2.round() << std::endl;
-// std::cout << "ss = " << std::setprecision(20) << ss << std::endl;
-// std::cout << "s4 = " << std::setprecision(20) << s4.round() << std::endl;
-// std::cout << "s5 = " << std::setprecision(20) << s5.round() << std::endl;
-// std::cout << "s1 = " << std::setprecision(20) << s1.round() << std::endl;
+/* Tests with two terms.  Answer should match ordinary floating point add. */
 
-// std::vector<double> a(100, 1e-15);
-// // std::iota(a.begin(), a.end(), 0.0);
+xsum_flt two_term[] = {
+    1.0, 2.0, /* Unexceptional adds of normal numbers */
+    -1.0, -2.0,
+    0.1, 12.2,
+    -0.1, -12.2,
+    12.1, -11.3,
+    -12.1, 11.3,
+    11.3, -12.1,
+    -11.3, 12.1,
+    1.234567e14, 9.87654321,
+    -1.234567e14, -9.87654321,
+    1.234567e14, -9.87654321,
+    -1.234567e14, 9.87654321,
+    3.1e200, 1.7e-100, /* Smaller term should disappear */
+    3.1e200, -1.7e-100,
+    -3.1e200, 1.7e-100,
+    -3.1e200, -1.7e-100,
+    1.7e-100, 3.1e200,
+    1.7e-100, -3.1e200,
+    -1.7e-100, 3.1e200,
+    -1.7e-100, -3.1e200,
+    1, pow2_52, /* Test rounding */
+    -1, -pow2_52,
+    1, pow2_52 / 2,
+    -1, -pow2_52 / 2,
+    1, pow2_52 / 2 + pow2_52 / 4096,
+    -1, -pow2_52 / 2 - pow2_52 / 4096,
+    1, pow2_52 / 2 + pow2_52 / (1 << 30) / (1 << 10),
+    -1, -pow2_52 / 2 - pow2_52 / (1 << 30) / (1 << 10),
+    1, pow2_52 / 2 - pow2_52 / 4096,
+    -1, -pow2_52 / 2 + pow2_52 / 4096,
+    1 + pow2_52, pow2_52 / 2,
+    1 + pow2_52, pow2_52 / 2 - pow2_52 *pow2_52,
+    -(1 + pow2_52), -pow2_52 / 2,
+    -(1 + pow2_52), -(pow2_52 / 2 - pow2_52 * pow2_52),
+    Sdenorm, 7.1, /* Adds with denormalized numbers */
+    Sdenorm, -7.1,
+    -Sdenorm, -7.1,
+    -Sdenorm, 7.1,
+    7.1, Sdenorm,
+    -7.1, Sdenorm,
+    -7.1, -Sdenorm,
+    7.1, -Sdenorm,
+    Ldenorm, Sdenorm,
+    Ldenorm, -Sdenorm,
+    -Ldenorm, Sdenorm,
+    -Ldenorm, -Sdenorm,
+    Sdenorm, Sdenorm,
+    Sdenorm, -Sdenorm,
+    -Sdenorm, Sdenorm,
+    -Sdenorm, -Sdenorm,
+    Ldenorm, Snormal,
+    Snormal, Ldenorm,
+    -Ldenorm, -Snormal,
+    -Snormal, -Ldenorm,
+    4.57e-314, 9.7e-322,
+    -4.57e-314, 9.7e-322,
+    4.57e-314, -9.7e-322,
+    -4.57e-314, -9.7e-322,
+    4.57e-321, 9.7e-322,
+    -4.57e-321, 9.7e-322,
+    4.57e-321, -9.7e-322,
+    -4.57e-321, -9.7e-322,
+    2.0, -2.0 * (1 + pow2_52),
+    Lnormal, Lnormal, /* Overflow */
+    -Lnormal, -Lnormal,
+    Lnormal, Lnormal *pow2_52 / 2,
+    -Lnormal, -Lnormal *pow2_52 / 2,
+    1.0 / 0.0, 123, /* Infinity / NaN */
+    -1.0 / 0.0, 123,
+    1.0 / 0.0, -1.0 / 0.0,
+    0.0 / 0.0, 123,
+    123, 0.0 / 0.0,
+    0};
 
-// auto const s1 = std::accumulate(a.begin(), a.end(), 0);
-// std::cout << "sum s1 = " << std::setprecision(20) << s1 << std::endl;
+/* Tests with three terms.  Answers are given here as a fourth number,
+   some computed/verified using Rmpfr in check.r. */
 
-// auto const s2 = xsum_sum_double(a.data(), a.size());
-// std::cout << "sum s2 = " << std::setprecision(20) << s2 << std::endl;
+xsum_flt three_term[] = {
+    Lnormal, Sdenorm, -Lnormal, Sdenorm,
+    -Lnormal, Sdenorm, Lnormal, Sdenorm,
+    Lnormal, -Sdenorm, -Lnormal, -Sdenorm,
+    -Lnormal, -Sdenorm, Lnormal, -Sdenorm,
+    Sdenorm, Snormal, -Sdenorm, Snormal,
+    -Sdenorm, -Snormal, Sdenorm, -Snormal,
+    12345.6, Snormal, -12345.6, Snormal,
+    12345.6, -Snormal, -12345.6, -Snormal,
+    12345.6, Ldenorm, -12345.6, Ldenorm,
+    12345.6, -Ldenorm, -12345.6, -Ldenorm,
+    2.0, -2.0 * (1 + pow2_52), pow2_52 / 8, -2 * pow2_52 + pow2_52 / 8,
+    1.0, 2.0, 3.0, 6.0,
+    12.0, 3.5, 2.0, 17.5,
+    3423.34e12, -93.431, -3432.1e11, 3080129999999906.5,
+    432457232.34, 0.3432445, -3433452433, -3000995200.3167553,
+    0};
 
-// xsum_small s3;
-// for (int i = 0; i < 100; ++i)
-// {
-//     s3.add(a[i]);
-// }
-// // s3.add(a.data(), a.size());
-// std::cout << "sum s3 = " << std::setprecision(20) << s3.round() << std::endl;
+/* Tests with ten terms.  Answers are given here as an eleventh number,
+   some computed/verified using Rmpfr in check.r. */
 
-// xsum_large s4;
-// for (int i = 0; i < 100; ++i)
-// {
-//     s4.add(a[i]);
-// }
-// // s4.add(a.data(), a.size());
-// std::cout << "sum s4 = " << std::setprecision(20) << s4.round() << std::endl;
-// }
+xsum_flt ten_term[] = {
+    Lnormal, Lnormal, Lnormal, Lnormal, Lnormal, Lnormal, -Lnormal, -Lnormal, -Lnormal, -Lnormal, 1.0 / 0.0,
+    -Lnormal, -Lnormal, -Lnormal, -Lnormal, -Lnormal, -Lnormal, Lnormal, Lnormal, Lnormal, Lnormal, -1.0 / 0.0,
+    Lnormal, Lnormal, Lnormal, Lnormal, 0.125, 0.125, -Lnormal, -Lnormal, -Lnormal, -Lnormal, 0.25,
+    2.0 * (1 + pow2_52), -2.0, -pow2_52, -pow2_52, 0, 0, 0, 0, 0, 0, 0,
+    1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1111111111e0,
+    -1e0, -1e1, -1e2, -1e3, -1e4, -1e5, -1e6, -1e7, -1e8, -1e9, -1111111111e0,
+    1.234e88, -93.3e-23, 994.33, 1334.3, 457.34, -1.234e88, 93.3e-23, -994.33, -1334.3, -457.34, 0,
+    1., -23., 456., -78910., 1112131415., -161718192021., 22232425262728., -2930313233343536., 373839404142434445., -46474849505152535455., -46103918342424313856.,
+    2342423.3423, 34234.450, 945543.4, 34345.34343, 1232.343, 0.00004343, 43423.0, -342344.8343, -89544.3435, -34334.3, 2934978.4009734304,
+    0.9101534, 0.9048397, 0.4036596, 0.1460245, 0.2931254, 0.9647649, 0.1125303, 0.1574193, 0.6522300, 0.7378597, 5.2826068,
+    428.366070546, 707.3261930632, 103.29267289, 9040.03475821, 36.2121638, 19.307901408, 1.4810709160, 8.077159101, 1218.907244150, 778.068267017, 12341.0735011012,
+    1.1e-322, 5.3443e-321, -9.343e-320, 3.33e-314, 4.41e-322, -8.8e-318, 3.1e-310, 4.1e-300, -4e-300, 7e-307, 1.0000070031003328e-301,
+    0};
 
-int main() {
-    // Initialize the MPI environment
-    MPI_Init(NULL, NULL);
+int total_small_test(0);
+int total_large_test(0);
+int small_test_fails(0);
+int large_test_fails(0);
 
-    // Get the number of processes
-    int world_size;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-    // Get the rank of the process
-    int world_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-    MPI_Datatype sacc_mpi;
-    create_small_accumulator_mpi_type(sacc_mpi);
-
-    MPI_Op XSUM;
-    /* Create the XSUM user-op */
-    MPI_Op_create(myXSUM, true, &XSUM);
-
-    double const a = 0.239e-3;
-
-    double s(0);
-    xsum_large_accumulator lacc;
-
-    for (int i = 0; i < 1000; ++i) {
-        s += a;
-        xsum_large_add(&lacc, a);
-    }
-
-    double ss;
-    xsum_small_accumulator sacc;
-    xsum_small_accumulator *lacc_sacc = xsum_large_round_to_small_accumulator(&lacc);
-
-    MPI_Allreduce(&s, &ss, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(lacc_sacc, &sacc, 1, sacc_mpi, XSUM, MPI_COMM_WORLD);
-
-    if (world_rank == 0) {
-        std::cout << "Rank =  " << world_rank
-                  << ", sum 1 =  " << std::setprecision(20) << ss
-                  << ", sum 2 =  " << std::setprecision(20) << xsum_small_round(&sacc) << std::endl;
-    }
-
-    /* Free the created user-op */
-    MPI_Op_free(&XSUM);
-
-    destroy_small_accumulator_mpi_type(sacc_mpi);
-
-    // Finalize the MPI environment.
-    MPI_Finalize();
+int different(double const a, double const b) {
+    return (std::isnan(a) != std::isnan(b)) || (!std::isnan(a) && !std::isnan(b) && a != b);
 }
 
-// int main() {
-//     double const a = 0.0000071;
+void small_result(xsum_small_accumulator *const sacc, double const s, int const i) {
+    double const r = xsum_small_round(sacc);
+    double const r2 = xsum_small_round(sacc);
+    ++total_small_test;
 
-//     double s(0);
-//     xsum_large_accumulator lacc;
+    if (different(r, r2)) {
+        std::printf(" \n-- TEST %d\n", i);
+        std::printf("   ANSWER: %.16le\n", s);
+        std::printf("small: Different second time %.16le != %.16le\n", r, r2);
+    }
 
-//     for (int i = 0; i < 1000; ++i) {
-//         s += a;
-//         xsum_large_add(&lacc, a);
-//     }
+    if (different(r, s)) {
+        ++small_test_fails;
+        std::printf(" \n-- TEST %d\n", i);
+        std::printf("   ANSWER: %.16le\n", s);
+        std::printf("small: Result incorrect %.16le != %.16le\n", r, s);
+        std::printf("    ");
+        pbinary_double(r);
+        std::printf("\n");
+        std::printf("    ");
+        pbinary_double(s);
+        std::printf("\n");
+    }
+}
 
-//     std::cout << "sum 1 =  " << std::setprecision(20) << s
-//               << ", sum 2 =  " << std::setprecision(20) << xsum_large_round(&lacc) << std::endl;
-// }
+void large_result(xsum_large_accumulator *const lacc, double const s, int const i) {
+    double const r = xsum_large_round(lacc);
+    double const r2 = xsum_large_round(lacc);
+    ++total_large_test;
+
+    if (different(r, r2)) {
+        std::printf(" \n-- TEST %d\n", i);
+        std::printf("   ANSWER: %.16le\n", s);
+        std::printf("large: Different second time %.16le != %.16le\n", r, r2);
+    }
+    if (different(r, s)) {
+        ++large_test_fails;
+        std::printf(" \n-- TEST %d\n", i);
+        std::printf("   ANSWER: %.16le\n", s);
+        std::printf("large: Result incorrect %.16le != %.16le\n", r, s);
+        std::printf("    ");
+        pbinary_double(r);
+        std::printf("\n");
+        std::printf("    ");
+        pbinary_double(s);
+        std::printf("\n");
+    }
+}
+
+int main(int argc, char **argv) {
+    std::printf("\nCORRECTNESS TESTS\n");
+
+    std::printf("\nA: ZERO TERM TEST\n");
+
+    {
+        xsum_small_accumulator sacc;
+        xsum_large_accumulator lacc;
+        small_result(&sacc, 0, 0);
+        large_result(&lacc, 0, 0);
+    }
+
+    {
+        xsum_small sacc;
+        xsum_large lacc;
+        small_result(sacc.get(), 0, 0);
+        large_result(lacc.get(), 0, 0);
+    }
+
+    std::printf("\nB: ONE TERM TESTS\n");
+
+    for (int i = 0; one_term[i] != 0; ++i) {
+        double const s = one_term[i];
+
+        xsum_small_accumulator sacc;
+        xsum_small_add(&sacc, one_term[i]);
+        small_result(&sacc, s, i);
+
+        xsum_large_accumulator lacc;
+        xsum_large_add(&lacc, *(one_term + i));
+        large_result(&lacc, s, i);
+    }
+
+    for (int i = 0; one_term[i] != 0; ++i) {
+        double const s = one_term[i];
+
+        xsum_small sacc;
+        sacc.add(one_term[i]);
+        small_result(sacc.get(), s, i);
+
+        xsum_large lacc;
+        lacc.add(*(one_term + i));
+        large_result(lacc.get(), s, i);
+    }
+
+    std::printf("\nC: ONE TERM TESTS TIMES %zu\n", REP1);
+
+    for (int i = 0; one_term[i] != 0; ++i) {
+        double const s = one_term[i] * REP1;
+
+        xsum_small_accumulator sacc;
+        for (int j = 0; j < REP1; ++j) {
+            xsum_small_add(&sacc, one_term[i]);
+        }
+        small_result(&sacc, s, i);
+
+        xsum_large_accumulator lacc;
+        for (int j = 0; j < REP1; ++j) {
+            xsum_large_add(&lacc, one_term[i]);
+        }
+        large_result(&lacc, s, i);
+    }
+
+    for (int i = 0; one_term[i] != 0; ++i) {
+        double const s = one_term[i] * REP1;
+
+        xsum_small sacc;
+        for (int j = 0; j < REP1; ++j) {
+            sacc.add(one_term[i]);
+        }
+        small_result(sacc.get(), s, i);
+
+        xsum_large lacc;
+        for (int j = 0; j < REP1; ++j) {
+            lacc.add(one_term[i]);
+        }
+        large_result(lacc.get(), s, i);
+    }
+
+    std::printf("\nD: TWO TERM TESTS\n");
+
+    for (int i = 0; two_term[i] != 0; i += 2) {
+        double const s = two_term[i] + two_term[i + 1];
+
+        xsum_small_accumulator sacc;
+        xsum_small_add(&sacc, two_term + i, 2);
+        small_result(&sacc, s, i / 2);
+
+        xsum_large_accumulator lacc;
+        xsum_large_add(&lacc, two_term + i, 2);
+        large_result(&lacc, s, i / 2);
+    }
+
+    for (int i = 0; two_term[i] != 0; i += 2) {
+        double const s = two_term[i] + two_term[i + 1];
+
+        xsum_small_accumulator sacc;
+        xsum_small_accumulator sacc2;
+
+        xsum_small_add(&sacc, *(two_term + i));
+        xsum_small_add(&sacc2, *(two_term + i + 1));
+        xsum_small_add(&sacc, &sacc2);
+        small_result(&sacc, s, i / 2);
+    }
+
+    for (int i = 0; two_term[i] != 0; i += 2) {
+        double const s = two_term[i] + two_term[i + 1];
+
+        xsum_small_accumulator sacc2;
+        xsum_small_accumulator sacc;
+
+        xsum_small_add(&sacc2, *(two_term + i));
+        xsum_small_add(&sacc, *(two_term + i + 1));
+        xsum_small_add(&sacc, &sacc2);
+        small_result(&sacc, s, i / 2);
+    }
+
+    for (int i = 0; two_term[i] != 0; i += 2) {
+        double const s = two_term[i] + two_term[i + 1];
+
+        xsum_small sacc;
+        sacc.add(two_term + i, 2);
+        small_result(sacc.get(), s, i / 2);
+
+        xsum_large lacc;
+        lacc.add(two_term + i, 2);
+        large_result(lacc.get(), s, i / 2);
+    }
+
+    std::printf("\nE: THREE TERM TESTS\n");
+
+    for (int i = 0; three_term[i] != 0; i += 4) {
+        double const s = three_term[i + 3];
+
+        xsum_small_accumulator sacc;
+        xsum_small_add(&sacc, three_term + i, 3);
+        small_result(&sacc, s, i / 4);
+
+        xsum_large_accumulator lacc;
+        xsum_large_add(&lacc, three_term + i, 3);
+        large_result(&lacc, s, i / 4);
+    }
+
+    for (int i = 0; three_term[i] != 0; i += 4) {
+        double const s = three_term[i + 3];
+
+        xsum_small_accumulator sacc;
+        xsum_small_accumulator sacc2;
+        xsum_small_accumulator sacc3;
+        xsum_small_add(&sacc, three_term[i]);
+        xsum_small_add(&sacc2, three_term[i + 1]);
+        xsum_small_add(&sacc3, three_term[i + 2]);
+        xsum_small_add(&sacc, &sacc2);
+        xsum_small_add(&sacc, &sacc3);
+        small_result(&sacc, s, i / 4);
+    }
+
+    for (int i = 0; three_term[i] != 0; i += 4) {
+        double const s = three_term[i + 3];
+
+        xsum_small_accumulator sacc;
+        xsum_small_accumulator sacc2[3];
+        xsum_small_add(sacc2, three_term[i]);
+        xsum_small_add(sacc2 + 1, three_term[i + 1]);
+        xsum_small_add(sacc2 + 2, three_term[i + 2]);
+        xsum_small_add(&sacc, sacc2, 3);
+        small_result(&sacc, s, i / 4);
+    }
+
+    for (int i = 0; three_term[i] != 0; i += 4) {
+        double const s = three_term[i + 3];
+
+        xsum_small sacc;
+        sacc.add(three_term + i, 3);
+        small_result(sacc.get(), s, i / 4);
+
+        xsum_large lacc;
+        lacc.add(three_term + i, 3);
+        large_result(lacc.get(), s, i / 4);
+    }
+
+    std::printf("\nF: TEN TERM TESTS\n");
+
+    for (int i = 0; ten_term[i] != 0; i += 11) {
+        double const s = ten_term[i + 10];
+
+        xsum_small_accumulator sacc;
+        xsum_small_add(&sacc, ten_term + i, 10);
+        small_result(&sacc, s, i / 11);
+
+        xsum_large_accumulator lacc;
+        xsum_large_add(&lacc, ten_term + i, 10);
+        large_result(&lacc, s, i / 11);
+    }
+
+    for (int i = 0; ten_term[i] != 0; i += 11) {
+        double const s = ten_term[i + 10];
+
+        xsum_small_accumulator sacc;
+        xsum_small_accumulator sacc2;
+        xsum_small_add(&sacc, ten_term + i, 5);
+        xsum_small_add(&sacc2, ten_term + i + 5, 5);
+        xsum_small_add(&sacc, &sacc2);
+        small_result(&sacc, s, i / 11);
+    }
+
+    for (int i = 0; ten_term[i] != 0; i += 11) {
+        double const s = ten_term[i + 10];
+
+        xsum_small sacc;
+        sacc.add(ten_term + i, 10);
+        small_result(sacc.get(), s, i / 11);
+
+        xsum_large lacc;
+        lacc.add(ten_term + i, 10);
+        large_result(lacc.get(), s, i / 11);
+    }
+
+    std::printf("\nG: TEN TERM TESTS TIMES %zu\n", REP10);
+
+    for (int i = 0; ten_term[i] != 0; i += 11) {
+        double const s = ten_term[i + 10] * REP10;
+
+        xsum_small_accumulator sacc;
+        for (int j = 0; j < REP10; ++j) {
+            xsum_small_add(&sacc, ten_term + i, 10);
+        }
+        small_result(&sacc, s, i / 11);
+
+        xsum_large_accumulator lacc;
+        for (int j = 0; j < REP10; ++j) {
+            xsum_large_add(&lacc, ten_term + i, 10);
+        }
+        large_result(&lacc, s, i / 11);
+    }
+
+    for (int i = 0; ten_term[i] != 0; i += 11) {
+        double const s = ten_term[i + 10] * REP10;
+
+        xsum_large_accumulator lacc;
+        for (int j = 0; j < REP10; ++j) {
+            xsum_large_add(&lacc, ten_term + i, 10);
+        }
+
+        auto sacc = xsum_large_round_to_small_accumulator(&lacc);
+        small_result(sacc, s, i / 11);
+    }
+
+    for (int i = 0; ten_term[i] != 0; i += 11) {
+        double const s = ten_term[i + 10] * REP10;
+
+        xsum_small sacc;
+        for (int j = 0; j < REP10; ++j) {
+            sacc.add(ten_term + i, 10);
+        }
+        small_result(sacc.get(), s, i / 11);
+
+        xsum_large lacc;
+        for (int j = 0; j < REP10; ++j) {
+            lacc.add(ten_term + i, 10);
+        }
+        large_result(lacc.get(), s, i / 11);
+    }
+
+    if (small_test_fails || large_test_fails) {
+        std::printf(
+            "\nTotal number of tests = %d\n"
+            "\t%d tests failed for small accumulator &"
+            "\t%d tests failed for large accumulator\n\n",
+            total_large_test + total_small_test,
+            small_test_fails, large_test_fails);
+    } else {
+        std::printf("\n%d tests passed successfuly.\n",
+                    total_large_test + total_small_test);
+    }
+    std::printf("\nDONE\n\n");
+
+    return 0;
+}
