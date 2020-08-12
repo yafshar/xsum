@@ -43,6 +43,28 @@ void small_result(xsum_small_accumulator *const sacc, double const s, int const 
     }
 }
 
+void large_result(xsum_large_accumulator *const lacc, double const s, int const rank, const char *test) {
+    double const r = xsum_large_round(lacc);
+    double const r2 = xsum_large_round(lacc);
+
+    if (different(r, r2)) {
+        std::printf(" \n-- %s on processor %d\n", test, rank);
+        std::printf("   ANSWER: %.16le\n", s);
+        std::printf("large: Different second time %.16le != %.16le\n", r, r2);
+    }
+    if (different(r, s)) {
+        std::printf(" \n-- %s on processor %d \n", test, rank);
+        std::printf("   ANSWER: %.16le\n", s);
+        std::printf("large: Result incorrect %.16le != %.16le\n", r, s);
+        std::printf("    ");
+        pbinary_double(r);
+        std::printf("\n");
+        std::printf("    ");
+        pbinary_double(s);
+        std::printf("\n");
+    }
+}
+
 int main() {
     // Initialize the MPI environment
     MPI_Init(NULL, NULL);
@@ -55,12 +77,19 @@ int main() {
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-    MPI_Datatype sacc_mpi;
-    create_small_accumulator_mpi_type(sacc_mpi);
+    MPI_Datatype acc_mpi;
+    create_mpi_type<xsum_small_accumulator>(acc_mpi);
 
     MPI_Op XSUM;
     /* Create the XSUM user-op */
-    MPI_Op_create(myXSUM, true, &XSUM);
+    create_XSUM<xsum_small_accumulator>(XSUM);
+
+    if (world_rank == 0) {
+        std::cout << "\nCORRECTNESS MPI TESTS\n";
+        std::cout << "SMALL ACCUMULATOR SUM TESTS\n";
+
+        std::cout << "A: SMALL ACCUMULATOR, MPI_Allreduce with/out MPI_IN_PLACE\n";
+    }
 
     {
         xsum_small_accumulator sacc;
@@ -70,7 +99,7 @@ int main() {
             }
         }
 
-        MPI_Allreduce(MPI_IN_PLACE, &sacc, 1, sacc_mpi, XSUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
         small_result(&sacc, term1[10], world_rank, "Test 1");
     }
 
@@ -88,7 +117,7 @@ int main() {
         // double ss;
         xsum_small_accumulator sacc;
 
-        MPI_Allreduce(&ssacc, &sacc, 1, sacc_mpi, XSUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&ssacc, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
         small_result(&sacc, term2[10] * 1000, world_rank, "Test 2");
     }
 
@@ -102,8 +131,12 @@ int main() {
 
         xsum_small_accumulator sacc;
 
-        MPI_Allreduce(ssacc.get(), &sacc, 1, sacc_mpi, XSUM, MPI_COMM_WORLD);
+        MPI_Allreduce(ssacc.get(), &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
         small_result(&sacc, term3[10], world_rank, "Test 3");
+    }
+
+    if (world_rank == 0) {
+        std::cout << "B: SMALL ACCUMULATOR, LARGE round to SMALL\n";
     }
 
     {
@@ -117,7 +150,7 @@ int main() {
         auto ssacc = xsum_large_round_to_small_accumulator(&lacc);
         xsum_small_accumulator sacc;
 
-        MPI_Allreduce(ssacc, &sacc, 1, sacc_mpi, XSUM, MPI_COMM_WORLD);
+        MPI_Allreduce(ssacc, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
         small_result(&sacc, term4[10], world_rank, "Test 4");
     }
 
@@ -132,7 +165,7 @@ int main() {
         auto ssacc = lacc.round_to_small_accumulator();
         xsum_small_accumulator sacc;
 
-        MPI_Allreduce(ssacc, &sacc, 1, sacc_mpi, XSUM, MPI_COMM_WORLD);
+        MPI_Allreduce(ssacc, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
         small_result(&sacc, term5[10], world_rank, "Test 5");
     }
 
@@ -147,14 +180,57 @@ int main() {
 
         xsum_small_accumulator sacc = *lacc.round_to_small_accumulator();
 
-        MPI_Allreduce(MPI_IN_PLACE, &sacc, 1, sacc_mpi, XSUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
         small_result(&sacc, term6[10], world_rank, "Test 6");
     }
 
     /* Free the created user-op */
     MPI_Op_free(&XSUM);
+    destroy_mpi_type(acc_mpi);
 
-    destroy_small_accumulator_mpi_type(sacc_mpi);
+    create_mpi_type<xsum_large_accumulator>(acc_mpi);
+
+    /* Create the XSUM user-op */
+    create_XSUM<xsum_large_accumulator>(XSUM);
+
+    if (world_rank == 0) {
+        std::cout << "\nLARGE ACCUMULATOR SUM TESTS\n";
+        std::cout << "A: LARGE ACCUMULATOR, MPI_Allreduce with/out MPI_IN_PLACE\n";
+    }
+
+    {
+        xsum_large_accumulator lacc;
+        for (int i = 0; i < 10; ++i) {
+            if ((i % world_size) == world_rank) {
+                xsum_large_add(&lacc, term1[i]);
+            }
+        }
+
+        MPI_Allreduce(MPI_IN_PLACE, &lacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
+        large_result(&lacc, term1[10], world_rank, "Test 1");
+    }
+
+    {
+        xsum_large_accumulator llacc;
+
+        for (int j = 0; j < 1000; ++j) {
+            for (int i = 0; i < 10; ++i) {
+                if ((i % world_size) == world_rank) {
+                    xsum_large_add(&llacc, term2[i]);
+                }
+            }
+        }
+
+        // double ss;
+        xsum_large_accumulator lacc;
+
+        MPI_Allreduce(&llacc, &lacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
+        large_result(&lacc, term2[10] * 1000, world_rank, "Test 2");
+    }
+
+    /* Free the created user-op */
+    MPI_Op_free(&XSUM);
+    destroy_mpi_type(acc_mpi);
 
     // Finalize the MPI environment.
     MPI_Finalize();
