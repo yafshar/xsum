@@ -14,6 +14,32 @@ Passing Libraries.
 It has an `op` handle that can subsequently be used in `MPI_Reduce`,
 `MPI_Allreduce`, `MPI_Reduce_scatter`, and `MPI_Scan` calls.
 
+
+Usage
+-----
+A simple example on how to use:
+```cpp
+#include <iostream>
+#include "xsum/xsum.hpp"
+
+int main() {
+    xsum_small sacc;
+    double const a = 0.123e-10;
+    for (int i = 0; i < 1000; ++i) {
+        lacc.add(a);
+    }
+    std::cout << lacc.round() << std::endl;
+}
+```
+```bash
+g++ minimal.cpp -std=c++11 -O3
+```
+or 
+```bash
+icpc minimal.cpp -std=c++11 -O3 -fp-model=double
+```
+
+
 ## Example
 
 
