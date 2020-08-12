@@ -23,7 +23,7 @@ A simple example on how to use:
 #include "xsum/xsum.hpp"
 
 int main() {
-    xsum_small sacc;
+    xsum_large lacc;
     double const a = 0.123e-10;
     for (int i = 0; i < 1000; ++i) {
         lacc.add(a);
