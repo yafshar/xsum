@@ -32,7 +32,7 @@ int main() {
     std::cout << lacc.round() << std::endl;
 }
 ```
-or 
+or
 ```cpp
 #include <iostream>
 #include "xsum/xsum.hpp"
@@ -50,7 +50,7 @@ int main() {
 ```bash
 g++ simple.cpp -std=c++11 -O3
 ```
-or 
+or
 ```bash
 icpc simple.cpp -std=c++11 -O3 -fp-model=double
 ```
@@ -102,14 +102,15 @@ int main() {
 
     if (world_rank == 0) {
         std::cout << "Rank =  " << world_rank
+                  << ", sum   =  " << std::setprecision(20) << a * 1000 * world_size
                   << ", sum 1 =  " << std::setprecision(20) << s
                   << ", sum 2 =  " << std::setprecision(20) << xsum_large_round(&lacc) << std::endl;
     }
 
     /* Free the created user-op */
-    destroy_XSUM(&XSUM);
+    destroy_XSUM(XSUM);
 
-    destroy_mpi_type(&acc_mpi);
+    destroy_mpi_type(acc_mpi);
 
     // Finalize the MPI environment.
     MPI_Finalize();
