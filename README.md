@@ -118,7 +118,14 @@ int main() {
 ```
 
 ```bash
-mpic++ mpi_simple.cpp -std=c++11 -O3
+mpic++ mpi_simple.cpp -std=c++11 -O3 -o simple
+```
+
+running the above code using 4 processors would result,
+```bash
+mpirunt -np 4 ./simple
+
+Rank =  0, sum   =  0.95600000000000007194, sum 1 =  0.95599999999998419575, sum 2 =  0.95600000000000007194
 ```
 
 ## References
