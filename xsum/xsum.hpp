@@ -219,6 +219,7 @@ class xsum_small {
     explicit xsum_small(xsum_small_accumulator const *sacc);
 
     void reset();
+    void init();
 
     /*
      * ADD ONE DOUBLE TO A SMALL ACCUMULATOR.  This is equivalent to, but
@@ -360,6 +361,7 @@ class xsum_large {
     explicit xsum_large(xsum_small const *sacc);
 
     void reset();
+    void init();
 
     /* ADD SINGLE NUMBER TO THE LARGE ACCUMULATOR */
     void add(xsum_flt const value);
@@ -489,6 +491,9 @@ static inline void xsum_large_add_value_inf_nan(
     xsum_expint const ix,
     xsum_lchunk const uintv);
 
+template <typename T>
+void xsum_init(T *const sacc);
+
 void xsum_small_add(xsum_small_accumulator *const sacc,
                     xsum_flt const value);
 void xsum_small_add(xsum_small_accumulator *const sacc,
@@ -507,6 +512,8 @@ void xsum_small_add_dot(xsum_small_accumulator *const sacc,
                         xsum_flt const *const vec2,
                         xsum_length const n);
 xsum_flt xsum_small_round(xsum_small_accumulator *const sacc);
+
+void xsum_large_init(xsum_large_accumulator *const sacc);
 
 void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const value);
 void xsum_large_add(xsum_large_accumulator *const lacc,
@@ -560,6 +567,13 @@ xsum_small::xsum_small(xsum_small_accumulator const *sacc) : _sacc(new xsum_smal
 
 void xsum_small::reset() {
     _sacc.reset(new xsum_small_accumulator);
+}
+
+void xsum_small::init() {
+    std::fill(_sacc->chunk, _sacc->chunk + XSUM_SCHUNKS, 0);
+    _sacc->Inf = 0;
+    _sacc->NaN = 0;
+    _sacc->adds_until_propagate = XSUM_SMALL_CARRY_TERMS;
 }
 
 void xsum_small::add(xsum_flt const value) {
@@ -1529,6 +1543,16 @@ xsum_large::xsum_large(xsum_small const *sacc) : xsum_large(sacc->get()) {}
 
 void xsum_large::reset() {
     _lacc.reset(new xsum_large_accumulator);
+}
+
+void xsum_large::init() {
+    std::fill(_lacc->count, _lacc->count + XSUM_LCHUNKS, -1);
+    std::fill(_lacc->chunks_used, _lacc->chunks_used + XSUM_LCHUNKS / 64, 0);
+    _lacc->used_used = 0;
+    std::fill(_lacc->sacc.chunk, _lacc->sacc.chunk + XSUM_SCHUNKS, 0);
+    _lacc->sacc.Inf = 0;
+    _lacc->sacc.NaN = 0;
+    _lacc->sacc.adds_until_propagate = XSUM_SMALL_CARRY_TERMS;
 }
 
 void xsum_large::add(xsum_flt const value) {
@@ -3399,6 +3423,25 @@ inline void xsum_add_dot_no_carry(xsum_small_accumulator *const sacc,
         xsum_flt const g = f1 * f2;
         xsum_add_no_carry(sacc, g);
     }
+}
+
+template <>
+void xsum_init<xsum_small_accumulator>(xsum_small_accumulator *const sacc) {
+    std::fill(sacc->chunk, sacc->chunk + XSUM_SCHUNKS, 0);
+    sacc->Inf = 0;
+    sacc->NaN = 0;
+    sacc->adds_until_propagate = XSUM_SMALL_CARRY_TERMS;
+}
+
+template <>
+void xsum_init<xsum_large_accumulator>(xsum_large_accumulator *const lacc) {
+    std::fill(lacc->count, lacc->count + XSUM_LCHUNKS, -1);
+    std::fill(lacc->chunks_used, lacc->chunks_used + XSUM_LCHUNKS / 64, 0);
+    lacc->used_used = 0;
+    std::fill(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS, 0);
+    lacc->sacc.Inf = 0;
+    lacc->sacc.NaN = 0;
+    lacc->sacc.adds_until_propagate = XSUM_SMALL_CARRY_TERMS;
 }
 
 void xsum_small_add(xsum_small_accumulator *const sacc,
