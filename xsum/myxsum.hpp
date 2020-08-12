@@ -96,7 +96,8 @@ void destroy_XSUM(MPI_Op &SSUM);
 template <typename T>
 void create_mpi_type(MPI_Datatype &datatype) {
     std::cerr << "Not implemented on purpose!" << std::endl;
-    MPI_Abort(MPI_COMM_WORLD);
+    int ierr;
+    MPI_Abort(MPI_COMM_WORLD, ierr);
 }
 
 template <>
@@ -130,7 +131,9 @@ void create_mpi_type<xsum_large_accumulator>(MPI_Datatype &large_accumulator_typ
 template <typename T>
 MPI_Datatype create_mpi_type() {
     std::cerr << "Not implemented on purpose!" << std::endl;
-    MPI_Abort(MPI_COMM_WORLD);
+    int ierr;
+    MPI_Abort(MPI_COMM_WORLD, ierr);
+    return MPI_DATATYPE_NULL;
 }
 
 template <>
@@ -172,7 +175,8 @@ void destroy_mpi_type(MPI_Datatype &user_type) {
 template <typename T>
 void myXSUM(void *invec, void *inoutvec, int *len, MPI_Datatype *datatype) {
     std::cerr << "Not implemented on purpose!" << std::endl;
-    MPI_Abort(MPI_COMM_WORLD);
+    int ierr;
+    MPI_Abort(MPI_COMM_WORLD, ierr);
 }
 
 template <>
@@ -198,7 +202,8 @@ void myXSUM<xsum_large_accumulator>(void *invec, void *inoutvec, int *len, MPI_D
 template <typename T>
 void create_XSUM(MPI_Op &XSUM) {
     std::cerr << "Not implemented on purpose!" << std::endl;
-    MPI_Abort(MPI_COMM_WORLD);
+    int ierr;
+    MPI_Abort(MPI_COMM_WORLD, ierr);
 }
 
 template <>
@@ -214,7 +219,9 @@ void create_XSUM<xsum_large_accumulator>(MPI_Op &XSUM) {
 template <typename T>
 MPI_Op create_XSUM() {
     std::cerr << "Not implemented on purpose!" << std::endl;
-    MPI_Abort(MPI_COMM_WORLD);
+    int ierr;
+    MPI_Abort(MPI_COMM_WORLD, ierr);
+    return MPI_OP_NULL;
 }
 
 template <>
