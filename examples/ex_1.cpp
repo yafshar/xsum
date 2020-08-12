@@ -35,21 +35,27 @@ constexpr double pow2_128 = (pow2_64 * pow2_64);
 constexpr double pow2_256 = (pow2_128 * pow2_128);
 constexpr double pow2_512 = (pow2_256 * pow2_256);
 constexpr double pow2_1024 = (pow2_512 * pow2_512);
-
 constexpr double pow2_52 = (1.0 / (1 << 22) / (1 << 30));
 
+/* Largest normal number */
 constexpr double Lnormal = (2 * ((.5 / pow2_1024) - (.25 / pow2_1024) * pow2_52));
+/* Smallest normal number */
 constexpr double Snormal = (4 * pow2_1024);
+/* Largest denormalized number */
 constexpr double Ldenorm = (4 * pow2_1024 - 4 * pow2_1024 * pow2_52);
+/* Smallest denormalized number > 0 */
 constexpr double Sdenorm = (4 * pow2_1024 * pow2_52);
 
-constexpr std::size_t REP1 = (1 << 23);  /* Repeat factor for second set of one term tests */
-constexpr std::size_t REP10 = (1 << 13); /* Repeat factor for second set of ten term tests */
+/* Repeat factor for second set of one term tests */
+constexpr int REP1 = (1 << 23);
+/* Repeat factor for second set of ten term tests */
+constexpr int REP10 = (1 << 13);
 
 /* Tests with one term. Answer should be the same as the term. */
 
 xsum_flt one_term[] = {
-    1.0, /* Some unexceptional examples of normal numbers */
+    /* Some unexceptional examples of normal numbers */
+    1.0,
     -1.0,
     0.1,
     -0.1,
@@ -63,30 +69,38 @@ xsum_flt one_term[] = {
     -123e123,
     54.11e-150,
     -54.11e-150,
-    2 * ((.5 / pow2_128) - (.25 / pow2_128) * pow2_52), /* Mantissa all 1s */
+    /* Mantissa all 1s */
+    2 * ((.5 / pow2_128) - (.25 / pow2_128) * pow2_52),
     -2 * ((.5 / pow2_128) + (.25 / pow2_128) * pow2_52),
-    Lnormal, /* Largest normal number */
+    /* Largest normal number */
+    Lnormal,
     -Lnormal,
-    Snormal, /* Smallest normal number */
+    /* Smallest normal number */
+    Snormal,
     -Snormal,
-    Ldenorm, /* Largest denormalized number */
+    /* Largest denormalized number */
+    Ldenorm,
     -Ldenorm,
-    Sdenorm, /* Smallest denormalized number > 0 */
+    /* Smallest denormalized number > 0 */
+    Sdenorm,
     -Sdenorm,
-    1.23e-309, /* Other denormalized numbers */
+    /* Other denormalized numbers */
+    1.23e-309,
     -1.23e-309,
     4.57e-314,
     -4.57e-314,
     9.7e-322,
     -9.7e-322,
     Sdenorm / pow2_64 / 2,
-    -Sdenorm / pow2_64 / 2,
-    0};
+    -Sdenorm / pow2_64 / 2};
+
+constexpr int one_term_size = sizeof(one_term) / sizeof(one_term[0]);
 
 /* Tests with two terms.  Answer should match ordinary floating point add. */
 
 xsum_flt two_term[] = {
-    1.0, 2.0, /* Unexceptional adds of normal numbers */
+    /* Unexceptional adds of normal numbers */
+    1.0, 2.0,
     -1.0, -2.0,
     0.1, 12.2,
     -0.1, -12.2,
@@ -98,7 +112,8 @@ xsum_flt two_term[] = {
     -1.234567e14, -9.87654321,
     1.234567e14, -9.87654321,
     -1.234567e14, 9.87654321,
-    3.1e200, 1.7e-100, /* Smaller term should disappear */
+    /* Smaller term should disappear */
+    3.1e200, 1.7e-100,
     3.1e200, -1.7e-100,
     -3.1e200, 1.7e-100,
     -3.1e200, -1.7e-100,
@@ -106,7 +121,8 @@ xsum_flt two_term[] = {
     1.7e-100, -3.1e200,
     -1.7e-100, 3.1e200,
     -1.7e-100, -3.1e200,
-    1, pow2_52, /* Test rounding */
+    /* Test rounding */
+    1, pow2_52,
     -1, -pow2_52,
     1, pow2_52 / 2,
     -1, -pow2_52 / 2,
@@ -120,7 +136,8 @@ xsum_flt two_term[] = {
     1 + pow2_52, pow2_52 / 2 - pow2_52 *pow2_52,
     -(1 + pow2_52), -pow2_52 / 2,
     -(1 + pow2_52), -(pow2_52 / 2 - pow2_52 * pow2_52),
-    Sdenorm, 7.1, /* Adds with denormalized numbers */
+    /* Adds with denormalized numbers */
+    Sdenorm, 7.1,
     Sdenorm, -7.1,
     -Sdenorm, -7.1,
     -Sdenorm, 7.1,
@@ -149,16 +166,19 @@ xsum_flt two_term[] = {
     4.57e-321, -9.7e-322,
     -4.57e-321, -9.7e-322,
     2.0, -2.0 * (1 + pow2_52),
-    Lnormal, Lnormal, /* Overflow */
+    /* Overflow */
+    Lnormal, Lnormal,
     -Lnormal, -Lnormal,
     Lnormal, Lnormal *pow2_52 / 2,
     -Lnormal, -Lnormal *pow2_52 / 2,
-    1.0 / 0.0, 123, /* Infinity / NaN */
+    /* Infinity / NaN */
+    1.0 / 0.0, 123,
     -1.0 / 0.0, 123,
     1.0 / 0.0, -1.0 / 0.0,
     0.0 / 0.0, 123,
-    123, 0.0 / 0.0,
-    0};
+    123, 0.0 / 0.0};
+
+constexpr int two_term_size = sizeof(two_term) / sizeof(two_term[0]);
 
 /* Tests with three terms.  Answers are given here as a fourth number,
    some computed/verified using Rmpfr in check.r. */
@@ -178,8 +198,9 @@ xsum_flt three_term[] = {
     1.0, 2.0, 3.0, 6.0,
     12.0, 3.5, 2.0, 17.5,
     3423.34e12, -93.431, -3432.1e11, 3080129999999906.5,
-    432457232.34, 0.3432445, -3433452433, -3000995200.3167553,
-    0};
+    432457232.34, 0.3432445, -3433452433, -3000995200.3167553};
+
+constexpr int three_term_size = sizeof(three_term) / sizeof(three_term[0]);
 
 /* Tests with ten terms.  Answers are given here as an eleventh number,
    some computed/verified using Rmpfr in check.r. */
@@ -196,8 +217,9 @@ xsum_flt ten_term[] = {
     2342423.3423, 34234.450, 945543.4, 34345.34343, 1232.343, 0.00004343, 43423.0, -342344.8343, -89544.3435, -34334.3, 2934978.4009734304,
     0.9101534, 0.9048397, 0.4036596, 0.1460245, 0.2931254, 0.9647649, 0.1125303, 0.1574193, 0.6522300, 0.7378597, 5.2826068,
     428.366070546, 707.3261930632, 103.29267289, 9040.03475821, 36.2121638, 19.307901408, 1.4810709160, 8.077159101, 1218.907244150, 778.068267017, 12341.0735011012,
-    1.1e-322, 5.3443e-321, -9.343e-320, 3.33e-314, 4.41e-322, -8.8e-318, 3.1e-310, 4.1e-300, -4e-300, 7e-307, 1.0000070031003328e-301,
-    0};
+    1.1e-322, 5.3443e-321, -9.343e-320, 3.33e-314, 4.41e-322, -8.8e-318, 3.1e-310, 4.1e-300, -4e-300, 7e-307, 1.0000070031003328e-301};
+
+constexpr int ten_term_size = sizeof(ten_term) / sizeof(ten_term[0]);
 
 int total_small_test(0);
 int total_large_test(0);
@@ -278,7 +300,7 @@ int main(int argc, char **argv) {
 
     std::printf("\nB: ONE TERM TESTS\n");
 
-    for (int i = 0; one_term[i] != 0; ++i) {
+    for (int i = 0; i < one_term_size; ++i) {
         double const s = one_term[i];
 
         xsum_small_accumulator sacc;
@@ -290,7 +312,7 @@ int main(int argc, char **argv) {
         large_result(&lacc, s, i);
     }
 
-    for (int i = 0; one_term[i] != 0; ++i) {
+    for (int i = 0; i < one_term_size; ++i) {
         double const s = one_term[i];
 
         xsum_small sacc;
@@ -302,9 +324,9 @@ int main(int argc, char **argv) {
         large_result(lacc.get(), s, i);
     }
 
-    std::printf("\nC: ONE TERM TESTS TIMES %zu\n", REP1);
+    std::printf("\nC: ONE TERM TESTS TIMES %d\n", REP1);
 
-    for (int i = 0; one_term[i] != 0; ++i) {
+    for (int i = 0; i < one_term_size; ++i) {
         double const s = one_term[i] * REP1;
 
         xsum_small_accumulator sacc;
@@ -320,7 +342,7 @@ int main(int argc, char **argv) {
         large_result(&lacc, s, i);
     }
 
-    for (int i = 0; one_term[i] != 0; ++i) {
+    for (int i = 0; i < one_term_size; ++i) {
         double const s = one_term[i] * REP1;
 
         xsum_small sacc;
@@ -336,9 +358,53 @@ int main(int argc, char **argv) {
         large_result(lacc.get(), s, i);
     }
 
+    for (int i = 0; i < one_term_size; ++i) {
+        double const s = one_term[i] * REP1;
+
+        xsum_small_accumulator sacc1;
+        xsum_small_accumulator sacc2;
+
+        for (int j = 0; j < REP1 / 2; ++j) {
+            xsum_small_add(&sacc1, one_term[i]);
+        }
+        for (int j = 0; j < REP1 / 2; ++j) {
+            xsum_small_add(&sacc2, one_term[i]);
+        }
+
+        xsum_small_add(&sacc1, &sacc2);
+        small_result(&sacc1, s, i);
+    }
+
+    for (int i = 0; i < one_term_size; ++i) {
+        double const s = one_term[i] * REP1;
+
+        xsum_small_accumulator sacc1;
+        xsum_small_accumulator sacc2;
+        xsum_small_accumulator sacc3;
+        xsum_small_accumulator sacc4;
+
+        for (int j = 0; j < REP1 / 4; ++j) {
+            xsum_small_add(&sacc1, one_term[i]);
+        }
+        for (int j = 0; j < REP1 / 4; ++j) {
+            xsum_small_add(&sacc2, one_term[i]);
+        }
+        for (int j = 0; j < REP1 / 4; ++j) {
+            xsum_small_add(&sacc3, one_term[i]);
+        }
+        for (int j = 0; j < REP1 / 4; ++j) {
+            xsum_small_add(&sacc4, one_term[i]);
+        }
+
+        xsum_small_add(&sacc1, &sacc2);
+        xsum_small_add(&sacc1, &sacc3);
+        xsum_small_add(&sacc1, &sacc4);
+        small_result(&sacc1, s, i);
+    }
+
     std::printf("\nD: TWO TERM TESTS\n");
 
-    for (int i = 0; two_term[i] != 0; i += 2) {
+    for (int i = 0; i < two_term_size; i += 2) {
         double const s = two_term[i] + two_term[i + 1];
 
         xsum_small_accumulator sacc;
@@ -350,7 +416,7 @@ int main(int argc, char **argv) {
         large_result(&lacc, s, i / 2);
     }
 
-    for (int i = 0; two_term[i] != 0; i += 2) {
+    for (int i = 0; i < two_term_size; i += 2) {
         double const s = two_term[i] + two_term[i + 1];
 
         xsum_small_accumulator sacc;
@@ -362,7 +428,7 @@ int main(int argc, char **argv) {
         small_result(&sacc, s, i / 2);
     }
 
-    for (int i = 0; two_term[i] != 0; i += 2) {
+    for (int i = 0; i < two_term_size; i += 2) {
         double const s = two_term[i] + two_term[i + 1];
 
         xsum_small_accumulator sacc2;
@@ -374,7 +440,7 @@ int main(int argc, char **argv) {
         small_result(&sacc, s, i / 2);
     }
 
-    for (int i = 0; two_term[i] != 0; i += 2) {
+    for (int i = 0; i < two_term_size; i += 2) {
         double const s = two_term[i] + two_term[i + 1];
 
         xsum_small sacc;
@@ -388,7 +454,7 @@ int main(int argc, char **argv) {
 
     std::printf("\nE: THREE TERM TESTS\n");
 
-    for (int i = 0; three_term[i] != 0; i += 4) {
+    for (int i = 0; i < three_term_size; i += 4) {
         double const s = three_term[i + 3];
 
         xsum_small_accumulator sacc;
@@ -400,7 +466,7 @@ int main(int argc, char **argv) {
         large_result(&lacc, s, i / 4);
     }
 
-    for (int i = 0; three_term[i] != 0; i += 4) {
+    for (int i = 0; i < three_term_size; i += 4) {
         double const s = three_term[i + 3];
 
         xsum_small_accumulator sacc;
@@ -414,7 +480,7 @@ int main(int argc, char **argv) {
         small_result(&sacc, s, i / 4);
     }
 
-    for (int i = 0; three_term[i] != 0; i += 4) {
+    for (int i = 0; i < three_term_size; i += 4) {
         double const s = three_term[i + 3];
 
         xsum_small_accumulator sacc;
@@ -426,7 +492,7 @@ int main(int argc, char **argv) {
         small_result(&sacc, s, i / 4);
     }
 
-    for (int i = 0; three_term[i] != 0; i += 4) {
+    for (int i = 0; i < three_term_size; i += 4) {
         double const s = three_term[i + 3];
 
         xsum_small sacc;
@@ -440,7 +506,7 @@ int main(int argc, char **argv) {
 
     std::printf("\nF: TEN TERM TESTS\n");
 
-    for (int i = 0; ten_term[i] != 0; i += 11) {
+    for (int i = 0; i < ten_term_size; i += 11) {
         double const s = ten_term[i + 10];
 
         xsum_small_accumulator sacc;
@@ -452,7 +518,7 @@ int main(int argc, char **argv) {
         large_result(&lacc, s, i / 11);
     }
 
-    for (int i = 0; ten_term[i] != 0; i += 11) {
+    for (int i = 0; i < ten_term_size; i += 11) {
         double const s = ten_term[i + 10];
 
         xsum_small_accumulator sacc;
@@ -463,7 +529,7 @@ int main(int argc, char **argv) {
         small_result(&sacc, s, i / 11);
     }
 
-    for (int i = 0; ten_term[i] != 0; i += 11) {
+    for (int i = 0; i < ten_term_size; i += 11) {
         double const s = ten_term[i + 10];
 
         xsum_small sacc;
@@ -475,9 +541,9 @@ int main(int argc, char **argv) {
         large_result(lacc.get(), s, i / 11);
     }
 
-    std::printf("\nG: TEN TERM TESTS TIMES %zu\n", REP10);
+    std::printf("\nG: TEN TERM TESTS TIMES %d\n", REP10);
 
-    for (int i = 0; ten_term[i] != 0; i += 11) {
+    for (int i = 0; i < ten_term_size; i += 11) {
         double const s = ten_term[i + 10] * REP10;
 
         xsum_small_accumulator sacc;
@@ -493,7 +559,7 @@ int main(int argc, char **argv) {
         large_result(&lacc, s, i / 11);
     }
 
-    for (int i = 0; ten_term[i] != 0; i += 11) {
+    for (int i = 0; i < ten_term_size; i += 11) {
         double const s = ten_term[i + 10] * REP10;
 
         xsum_large_accumulator lacc;
@@ -505,7 +571,7 @@ int main(int argc, char **argv) {
         small_result(sacc, s, i / 11);
     }
 
-    for (int i = 0; ten_term[i] != 0; i += 11) {
+    for (int i = 0; i < ten_term_size; i += 11) {
         double const s = ten_term[i + 10] * REP10;
 
         xsum_small sacc;
@@ -519,6 +585,24 @@ int main(int argc, char **argv) {
             lacc.add(ten_term + i, 10);
         }
         large_result(lacc.get(), s, i / 11);
+    }
+
+    for (int i = 0; i < ten_term_size; i += 11) {
+        double const s = ten_term[i + 10] * REP10;
+
+        xsum_large_accumulator lacc1;
+        xsum_large_accumulator lacc2;
+
+        for (int j = 0; j < REP10 / 2; ++j) {
+            xsum_large_add(&lacc1, ten_term + i, 10);
+        }
+        for (int j = 0; j < REP10 / 2; ++j) {
+            xsum_large_add(&lacc2, ten_term + i, 10);
+        }
+
+        xsum_large_add(&lacc1, &lacc2);
+
+        large_result(&lacc1, s, i / 11);
     }
 
     if (small_test_fails || large_test_fails) {
