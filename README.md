@@ -14,6 +14,48 @@ Passing Libraries.
 It has an `op` handle that can subsequently be used in `MPI_Reduce`,
 `MPI_Allreduce`, `MPI_Reduce_scatter`, and `MPI_Scan` calls.
 
+
+Usage
+-----
+Two simple examples on how to use this library:
+
+```cpp
+#include <iostream>
+#include "xsum/xsum.hpp"
+
+int main() {
+    xsum_large lacc;
+    double const a = 0.123e-10;
+    for (int i = 0; i < 1000; ++i) {
+        lacc.add(a);
+    }
+    std::cout << lacc.round() << std::endl;
+}
+```
+or 
+```cpp
+#include <iostream>
+#include "xsum/xsum.hpp"
+
+int main() {
+    xsum_large_accumulator lacc;
+    double const a = 0.123e-10;
+    for (int i = 0; i < 1000; ++i) {
+        xsum_large_add(&lacc, a);
+    }
+    std::cout << xsum_large_round(&lacc) << std::endl;
+}
+```
+
+```bash
+g++ simple.cpp -std=c++11 -O3
+```
+or 
+```bash
+icpc simple.cpp -std=c++11 -O3 -fp-model=double
+```
+
+
 ## Example
 
 
@@ -46,11 +88,12 @@ int main() {
     MPI_Op XSUM = create_XSUM<xsum_large_accumulator>();
 
     double const a = 0.239e-3;
-    double s = a * 1000;
+    double s(0);
 
     xsum_large_accumulator lacc;
 
     for (int i = 0; i < 1000; ++i) {
+        s += a;
         xsum_large_add(&lacc, a);
     }
 
@@ -71,6 +114,10 @@ int main() {
     // Finalize the MPI environment.
     MPI_Finalize();
 }
+```
+
+```bash
+mpic++ mpi_simple.cpp -std=c++11 -O3
 ```
 
 ## References
