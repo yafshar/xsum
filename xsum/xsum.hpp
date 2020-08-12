@@ -311,7 +311,7 @@ class xsum_small {
      * substantial inefficiency).
      */
     inline void add_no_carry(xsum_flt const value);
-    inline void add_no_carry(xsum_small_accumulator const &value);
+    inline void add_no_carry(xsum_small_accumulator const *value);
 
     /*
      * ADD A VECTOR TO A SMALL ACCUMULATOR, ASSUMING NO CARRY PROPAGATION NEEDED.
@@ -364,6 +364,9 @@ class xsum_large {
     /* ADD SINGLE NUMBER TO THE LARGE ACCUMULATOR */
     void add(xsum_flt const value);
 
+    void add(xsum_small_accumulator const *const value);
+    void add(xsum_large_accumulator *const value);
+
     /*
      * ADD A VECTOR OF FLOATING-POINT NUMBERS TO A LARGE ACCUMULATOR.
      */
@@ -384,6 +387,7 @@ class xsum_large {
     xsum_flt round();
 
     xsum_small_accumulator *round_to_small_accumulator();
+    xsum_small_accumulator *round_to_small_accumulator(xsum_large_accumulator *const lacc);
 
     /* Display a large accumulator. */
     void display();
@@ -409,6 +413,8 @@ class xsum_large {
      * return with value 0 if there is none.
      */
     int carry_propagate();
+
+    inline void add_no_carry(xsum_small_accumulator const *const value);
 
     /*
      * RETURN THE RESULT OF ROUNDING A SMALL ACCUMULATOR.  The rounding mode
@@ -486,10 +492,10 @@ static inline void xsum_large_add_value_inf_nan(
 void xsum_small_add(xsum_small_accumulator *const sacc,
                     xsum_flt const value);
 void xsum_small_add(xsum_small_accumulator *const sacc,
-                    xsum_small_accumulator const *value);
-void xsum_small_add(xsum_small_accumulator *const sacc,
                     xsum_flt const *const vec,
-                    xsum_length const c);
+                    xsum_length const n);
+void xsum_small_add(xsum_small_accumulator *const sacc,
+                    xsum_small_accumulator const *const value);
 void xsum_small_add(xsum_small_accumulator *const sacc,
                     xsum_small_accumulator const *const vec,
                     xsum_length const n);
@@ -506,13 +512,19 @@ void xsum_large_add(xsum_large_accumulator *const lacc, xsum_flt const value);
 void xsum_large_add(xsum_large_accumulator *const lacc,
                     xsum_flt const *const vec,
                     xsum_length const n);
+void xsum_large_add(xsum_large_accumulator *const lacc,
+                    xsum_small_accumulator const *value);
+void xsum_large_add(xsum_large_accumulator *const lacc,
+                    xsum_large_accumulator *const value);
 
-xsum_small_accumulator *xsum_large_round_to_small_accumulator(
-    xsum_large_accumulator *const lacc);
+xsum_small_accumulator *xsum_large_round_to_small_accumulator(xsum_large_accumulator *const lacc);
+
 xsum_flt xsum_large_round(xsum_large_accumulator *const lacc);
+
 void xsum_large_add_sqnorm(xsum_large_accumulator *const lacc,
                            xsum_flt const *const vec,
                            xsum_length const n);
+
 void xsum_large_add_dot(xsum_large_accumulator *const lacc,
                         xsum_flt const *const vec1,
                         xsum_flt const *const vec2,
@@ -565,7 +577,7 @@ void xsum_small::add(xsum_small_accumulator const &value) {
         carry_propagate();
     }
 
-    add_no_carry(value);
+    add_no_carry(&value);
 
     --_sacc->adds_until_propagate;
 }
@@ -575,13 +587,13 @@ void xsum_small::add(xsum_small_accumulator const *value) {
         carry_propagate();
     }
 
-    add_no_carry(*value);
+    add_no_carry(value);
 
     --_sacc->adds_until_propagate;
 }
 
 void xsum_small::add(xsum_small const &xvalue) {
-    xsum_small_accumulator const value = *xvalue.get();
+    xsum_small_accumulator const *value = xvalue.get();
 
     if (_sacc->adds_until_propagate == 0) {
         carry_propagate();
@@ -592,13 +604,14 @@ void xsum_small::add(xsum_small const &xvalue) {
     --_sacc->adds_until_propagate;
 }
 
-void xsum_small::add(xsum_flt const *vec, xsum_length const n) {
+void xsum_small::add(xsum_flt const *v, xsum_length const n) {
     if (n == 0) {
         return;
     }
 
     xsum_small_accumulator *sacc = _sacc.get();
 
+    xsum_flt const *vec = v;
     xsum_length c = n;
     while (c > 1) {
         if (sacc->adds_until_propagate == 0) {
@@ -615,16 +628,18 @@ void xsum_small::add(xsum_flt const *vec, xsum_length const n) {
         c -= m;
     }
 
-    add(*vec);
+    xsum_flt const f = *vec;
+    add(f);
 }
 
-void xsum_small::add_sqnorm(xsum_flt const *vec, xsum_length const n) {
+void xsum_small::add_sqnorm(xsum_flt const *v, xsum_length const n) {
     if (n == 0) {
         return;
     }
 
     xsum_small_accumulator *sacc = _sacc.get();
 
+    xsum_flt const *vec = v;
     xsum_length c = n;
     while (c > 1) {
         if (sacc->adds_until_propagate == 0) {
@@ -641,16 +656,20 @@ void xsum_small::add_sqnorm(xsum_flt const *vec, xsum_length const n) {
         c -= m;
     }
 
-    add(*vec * *vec);
+    xsum_flt const f = *vec;
+    xsum_flt const g = f * f;
+    add(g);
 }
 
-void xsum_small::add_dot(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n) {
+void xsum_small::add_dot(xsum_flt const *v1, xsum_flt const *v2, xsum_length const n) {
     if (n == 0) {
         return;
     }
 
     xsum_small_accumulator *sacc = _sacc.get();
 
+    xsum_flt const *vec1 = v1;
+    xsum_flt const *vec2 = v2;
     xsum_length c = n;
     while (c > 1) {
         if (sacc->adds_until_propagate == 0) {
@@ -669,7 +688,10 @@ void xsum_small::add_dot(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length
         c -= m;
     }
 
-    add(*vec1 * *vec2);
+    xsum_flt const f1 = *vec1;
+    xsum_flt const f2 = *vec2;
+    xsum_flt const g = f1 * f2;
+    add(g);
 }
 
 xsum_flt xsum_small::round() {
@@ -700,11 +722,11 @@ xsum_flt xsum_small::round() {
 
     /* If none of the numbers summed were infinite or NaN, we proceed to
        propagate carries, as a preliminary to finding the magnitude of
-       the sum.  This also ensures that the sign of the result can be
+       the sum. This also ensures that the sign of the result can be
        determined from the uppermost non-zero chunk.
        We also find the index, i, of this uppermost non-zero chunk, as
        the value returned by xsum_carry_propagate, and set ivalue to
-       sacc->chunk[i].  Note that ivalue will not be 0 or -1, unless
+       sacc->chunk[i]. Note that ivalue will not be 0 or -1, unless
        i is 0 (the lowest chunk), in which case it will be handled by
        the code for denormalized numbers. */
 
@@ -760,13 +782,13 @@ xsum_flt xsum_small::round() {
     }
 
     /* Find the location of the uppermost 1 bit in the absolute value of the
-     upper chunk by converting it (as a signed integer) to a floating point
-     value, and looking at the exponent.  Then set 'more' to the number of
-     bits from the lower chunk (and maybe the next lower) that are needed
-     to fill out the mantissa of the result, plus an extra bit to help decide
-     on rounding.  For negative numbers, it may turn out later that we need
-     another bit because negating a negative value may carry out of the top
-     here, but not once more bits are shifted into the bottom later on. */
+       upper chunk by converting it (as a signed integer) to a floating point
+       value, and looking at the exponent.  Then set 'more' to the number of
+       bits from the lower chunk (and maybe the next lower) that are needed
+       to fill out the mantissa of the result, plus an extra bit to help decide
+       on rounding.  For negative numbers, it may turn out later that we need
+       another bit because negating a negative value may carry out of the top
+       here, but not once more bits are shifted into the bottom later on. */
 
     u.fltv = static_cast<xsum_flt>(ivalue);
 
@@ -958,8 +980,9 @@ xsum_flt xsum_small::round() {
 
             goto done_rounding;
         }
-    } else /* number is negative, low bit 1 (odd) */
-    {
+    }
+    /* number is negative, low bit 1 (odd) */
+    else {
         if (lower != 0) {
             if (xsum_debug) {
                 std::cout << "round toward zero, since magnitude < 1/2 (low chunks)\n";
@@ -998,6 +1021,7 @@ done_rounding:;
 
     if (e >= XSUM_EXP_MASK) {
         u.intv |= static_cast<xsum_int>(XSUM_EXP_MASK) << XSUM_MANTISSA_BITS;
+
         if (xsum_debug) {
             std::cout << "Final rounded result: "
                       << std::scientific << std::setprecision(17) << u.fltv
@@ -1005,6 +1029,7 @@ done_rounding:;
             pbinary_double(u.fltv);
             std::cout << "\n";
         }
+
         return u.fltv;
     }
 
@@ -1213,7 +1238,6 @@ int xsum_small::carry_propagate() {
         }
 
         xsum_schunk const clow = c & XSUM_LOW_MANTISSA_MASK;
-
         if (clow != 0) {
             uix = i;
         }
@@ -1399,28 +1423,31 @@ inline void xsum_small::add_no_carry(xsum_flt const value) {
     }
 }
 
-inline void xsum_small::add_no_carry(xsum_small_accumulator const &value) {
-    if (value.Inf != 0) {
+inline void xsum_small::add_no_carry(xsum_small_accumulator const *value) {
+    if (value->Inf != 0) {
         if (_sacc->Inf == 0) {
-            _sacc->Inf = value.Inf;
-        } else if (_sacc->Inf != value.Inf) {
+            _sacc->Inf = value->Inf;
+        } else if (_sacc->Inf != value->Inf) {
             fpunion u;
-            u.intv = value.Inf;
+            u.intv = value->Inf;
+
+            /* result will be a NaN */
             u.fltv = u.fltv - u.fltv;
+
             _sacc->Inf = u.intv;
         }
         return;
     }
 
-    if (value.NaN != 0) {
-        if ((_sacc->NaN & XSUM_MANTISSA_MASK) < (value.NaN & XSUM_MANTISSA_MASK)) {
-            _sacc->NaN = value.NaN;
+    if (value->NaN != 0) {
+        if ((_sacc->NaN & XSUM_MANTISSA_MASK) < (value->NaN & XSUM_MANTISSA_MASK)) {
+            _sacc->NaN = value->NaN;
         }
         return;
     }
 
     xsum_schunk *sc = _sacc->chunk;
-    xsum_schunk const *vc = value.chunk;
+    xsum_schunk const *vc = value->chunk;
     for (int i = 0; i < XSUM_SCHUNKS; ++i) {
         sc[i] += vc[i];
     }
@@ -1533,6 +1560,25 @@ void xsum_large::add(xsum_flt const value) {
         _lacc->count[ix] = count;
         _lacc->chunk[ix] += u.uintv;
     }
+}
+
+void xsum_large::add(xsum_small_accumulator const *const value) {
+    if (xsum_debug) {
+        std::cout << "LARGE ADD SMALL ACCUMULATOR VALUE\n";
+    }
+
+    if (_lacc->sacc.adds_until_propagate == 0) {
+        carry_propagate();
+    }
+
+    add_no_carry(value);
+
+    --_lacc->sacc.adds_until_propagate;
+}
+
+void xsum_large::add(xsum_large_accumulator *const value) {
+    xsum_small_accumulator *sacc = round_to_small_accumulator(value);
+    add(sacc);
 }
 
 void xsum_large::add(xsum_flt const *vec, xsum_length const n) {
@@ -2079,6 +2125,112 @@ xsum_small_accumulator *xsum_large::round_to_small_accumulator() {
     return &_lacc->sacc;
 }
 
+xsum_small_accumulator *xsum_large::round_to_small_accumulator(xsum_large_accumulator *const lacc) {
+    xsum_used const *p = lacc->chunks_used;
+    xsum_used const *e = p + XSUM_LCHUNKS / 64;
+
+    /* Very quickly skip some unused low-order blocks of chunks
+       by looking at the used_used flags. */
+    xsum_used uu = lacc->used_used;
+
+    if ((uu & 0xffffffff) == 0) {
+        uu >>= 32;
+        p += 32;
+    }
+    if ((uu & 0xffff) == 0) {
+        uu >>= 16;
+        p += 16;
+    }
+    if ((uu & 0xff) == 0) {
+        p += 8;
+    }
+
+    /* Loop over remaining blocks of chunks. */
+    xsum_used u;
+    int ix;
+    do {
+        /* Loop to quickly find the next non-zero block of used flags, or finish
+           up if we've added all the used blocks to the small accumulator. */
+
+        for (;;) {
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return &lacc->sacc;
+            }
+
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return &lacc->sacc;
+            }
+
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return &lacc->sacc;
+            }
+
+            u = *p;
+            if (u != 0) {
+                break;
+            }
+
+            ++p;
+            if (p == e) {
+                return &lacc->sacc;
+            }
+        }
+
+        /* Find and process the chunks in this block that are used.  We skip
+           forward based on the chunks_used flags until we're within eight
+           bits of a chunk that is in use. */
+
+        ix = (p - lacc->chunks_used) << 6;
+        if ((u & 0xffffffff) == 0) {
+            u >>= 32;
+            ix += 32;
+        }
+
+        if ((u & 0xffff) == 0) {
+            u >>= 16;
+            ix += 16;
+        }
+
+        if ((u & 0xff) == 0) {
+            u >>= 8;
+            ix += 8;
+        }
+
+        do {
+            if (lacc->count[ix] >= 0) {
+                add_lchunk_to_small(ix);
+            }
+
+            ++ix;
+            u >>= 1;
+        } while (u != 0);
+
+        ++p;
+    } while (p != e);
+
+    /* Finish now that all blocks have been added to the small accumulator
+       by calling the small accumulator rounding function. */
+    return &lacc->sacc;
+}
+
 void xsum_large::display() {
     std::cout << "Large accumulator:\n";
 
@@ -2347,6 +2499,36 @@ int xsum_large::carry_propagate() {
 
     /* Return index of uppermost non-zero chunk. */
     return uix;
+}
+
+inline void xsum_large::add_no_carry(xsum_small_accumulator const *const value) {
+    if (value->Inf != 0) {
+        if (_lacc->sacc.Inf == 0) {
+            _lacc->sacc.Inf = value->Inf;
+        } else if (_lacc->sacc.Inf != value->Inf) {
+            fpunion u;
+            u.intv = value->Inf;
+
+            /* result will be a NaN */
+            u.fltv = u.fltv - u.fltv;
+
+            _lacc->sacc.Inf = u.intv;
+        }
+        return;
+    }
+
+    if (value->NaN != 0) {
+        if ((_lacc->sacc.NaN & XSUM_MANTISSA_MASK) < (value->NaN & XSUM_MANTISSA_MASK)) {
+            _lacc->sacc.NaN = value->NaN;
+        }
+        return;
+    }
+
+    xsum_schunk *sc = _lacc->sacc.chunk;
+    xsum_schunk const *vc = value->chunk;
+    for (int i = 0; i < XSUM_SCHUNKS; ++i) {
+        sc[i] += vc[i];
+    }
 }
 
 xsum_flt xsum_large::sround() {
@@ -3063,8 +3245,10 @@ inline void xsum_small_add_inf_nan(xsum_small_accumulator *const sacc,
         else if (sacc->Inf != ivalue) {
             fpunion u;
             u.intv = ivalue;
+
             /* result will be a NaN */
             u.fltv = u.fltv - u.fltv;
+
             sacc->Inf = u.intv;
         }
     }
@@ -3150,8 +3334,10 @@ inline void xsum_add_no_carry(xsum_small_accumulator *const sacc,
         else if (sacc->Inf != value->Inf) {
             fpunion u;
             u.intv = value->Inf;
+
             /* result will be a NaN */
             u.fltv = u.fltv - u.fltv;
+
             sacc->Inf = u.intv;
         }
         return;
@@ -3227,7 +3413,7 @@ void xsum_small_add(xsum_small_accumulator *const sacc,
 }
 
 void xsum_small_add(xsum_small_accumulator *const sacc,
-                    xsum_small_accumulator const *value) {
+                    xsum_small_accumulator const *const value) {
     if (sacc->adds_until_propagate == 0) {
         xsum_carry_propagate(sacc);
     }
@@ -3794,6 +3980,23 @@ void xsum_large_add(xsum_large_accumulator *const lacc,
             break;
         }
     }
+}
+
+void xsum_large_add(xsum_large_accumulator *const lacc,
+                    xsum_small_accumulator const *const value) {
+    if (lacc->sacc.adds_until_propagate == 0) {
+        xsum_carry_propagate(&lacc->sacc);
+    }
+
+    xsum_add_no_carry(&lacc->sacc, value);
+
+    --lacc->sacc.adds_until_propagate;
+}
+
+void xsum_large_add(xsum_large_accumulator *const lacc,
+                    xsum_large_accumulator *const value) {
+    xsum_small_accumulator *sacc = xsum_large_round_to_small_accumulator(value);
+    xsum_large_add(lacc, sacc);
 }
 
 xsum_small_accumulator *xsum_large_round_to_small_accumulator(
