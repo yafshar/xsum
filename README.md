@@ -88,11 +88,12 @@ int main() {
     MPI_Op XSUM = create_XSUM<xsum_large_accumulator>();
 
     double const a = 0.239e-3;
-    double s = a * 1000;
+    double s(0);
 
     xsum_large_accumulator lacc;
 
     for (int i = 0; i < 1000; ++i) {
+        s += a;
         xsum_large_add(&lacc, a);
     }
 
