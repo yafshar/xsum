@@ -17,7 +17,8 @@ It has an `op` handle that can subsequently be used in `MPI_Reduce`,
 
 Usage
 -----
-A simple example on how to use:
+Two simple examples on how to use this library:
+
 ```cpp
 #include <iostream>
 #include "xsum/xsum.hpp"
@@ -31,12 +32,27 @@ int main() {
     std::cout << lacc.round() << std::endl;
 }
 ```
+or 
+```cpp
+#include <iostream>
+#include "xsum/xsum.hpp"
+
+int main() {
+    xsum_large_accumulator lacc;
+    double const a = 0.123e-10;
+    for (int i = 0; i < 1000; ++i) {
+        xsum_large_add(&lacc, a);
+    }
+    std::cout << xsum_large_round(&lacc) << std::endl;
+}
+```
+
 ```bash
-g++ minimal.cpp -std=c++11 -O3
+g++ simple.cpp -std=c++11 -O3
 ```
 or 
 ```bash
-icpc minimal.cpp -std=c++11 -O3 -fp-model=double
+icpc simple.cpp -std=c++11 -O3 -fp-model=double
 ```
 
 
@@ -97,6 +113,10 @@ int main() {
     // Finalize the MPI environment.
     MPI_Finalize();
 }
+```
+
+```bash
+mpic++ mpi_simple.cpp -std=c++11 -O3
 ```
 
 ## References
