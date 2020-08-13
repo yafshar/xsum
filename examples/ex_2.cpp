@@ -20,9 +20,9 @@ int different(double const a, double const b) {
     return (std::isnan(a) != std::isnan(b)) || (!std::isnan(a) && !std::isnan(b) && a != b);
 }
 
-void small_result(xsum_small_accumulator *const sacc, double const s, int const rank, const char *test) {
-    double const r = xsum_small_round(sacc);
-    double const r2 = xsum_small_round(sacc);
+void result(xsum_small_accumulator *const sacc, double const s, int const rank, const char *test) {
+    double const r = xsum_round(sacc);
+    double const r2 = xsum_round(sacc);
 
     if (different(r, r2)) {
         std::printf(" \n-- %s on processor %d\n", test, rank);
@@ -43,9 +43,9 @@ void small_result(xsum_small_accumulator *const sacc, double const s, int const 
     }
 }
 
-void large_result(xsum_large_accumulator *const lacc, double const s, int const rank, const char *test) {
-    double const r = xsum_large_round(lacc);
-    double const r2 = xsum_large_round(lacc);
+void result(xsum_large_accumulator *const lacc, double const s, int const rank, const char *test) {
+    double const r = xsum_round(lacc);
+    double const r2 = xsum_round(lacc);
 
     if (different(r, r2)) {
         std::printf(" \n-- %s on processor %d\n", test, rank);
@@ -95,12 +95,12 @@ int main() {
         xsum_small_accumulator sacc;
         for (int i = 0; i < 10; ++i) {
             if ((i % world_size) == world_rank) {
-                xsum_small_add(&sacc, term1[i]);
+                xsum_add(&sacc, term1[i]);
             }
         }
 
         MPI_Allreduce(MPI_IN_PLACE, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
-        small_result(&sacc, term1[10], world_rank, "Test 1");
+        result(&sacc, term1[10], world_rank, "Test 1");
     }
 
     {
@@ -109,7 +109,7 @@ int main() {
         for (int j = 0; j < 1000; ++j) {
             for (int i = 0; i < 10; ++i) {
                 if ((i % world_size) == world_rank) {
-                    xsum_small_add(&ssacc, term2[i]);
+                    xsum_add(&ssacc, term2[i]);
                 }
             }
         }
@@ -118,7 +118,7 @@ int main() {
         xsum_small_accumulator sacc;
 
         MPI_Allreduce(&ssacc, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
-        small_result(&sacc, term2[10] * 1000, world_rank, "Test 2");
+        result(&sacc, term2[10] * 1000, world_rank, "Test 2");
     }
 
     {
@@ -132,7 +132,7 @@ int main() {
         xsum_small_accumulator sacc;
 
         MPI_Allreduce(ssacc.get(), &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
-        small_result(&sacc, term3[10], world_rank, "Test 3");
+        result(&sacc, term3[10], world_rank, "Test 3");
     }
 
     if (world_rank == 0) {
@@ -143,15 +143,15 @@ int main() {
         xsum_large_accumulator lacc;
         for (int i = 0; i < 10; ++i) {
             if ((i % world_size) == world_rank) {
-                xsum_large_add(&lacc, term4[i]);
+                xsum_add(&lacc, term4[i]);
             }
         }
 
-        auto ssacc = xsum_large_round_to_small_accumulator(&lacc);
+        auto ssacc = xsum_round_to_small(&lacc);
         xsum_small_accumulator sacc;
 
         MPI_Allreduce(ssacc, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
-        small_result(&sacc, term4[10], world_rank, "Test 4");
+        result(&sacc, term4[10], world_rank, "Test 4");
     }
 
     {
@@ -162,11 +162,11 @@ int main() {
             }
         }
 
-        auto ssacc = lacc.round_to_small_accumulator();
+        auto ssacc = lacc.round_to_small();
         xsum_small_accumulator sacc;
 
         MPI_Allreduce(ssacc, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
-        small_result(&sacc, term5[10], world_rank, "Test 5");
+        result(&sacc, term5[10], world_rank, "Test 5");
     }
 
     {
@@ -178,10 +178,10 @@ int main() {
             }
         }
 
-        xsum_small_accumulator sacc = *lacc.round_to_small_accumulator();
+        xsum_small_accumulator sacc = *lacc.round_to_small();
 
         MPI_Allreduce(MPI_IN_PLACE, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
-        small_result(&sacc, term6[10], world_rank, "Test 6");
+        result(&sacc, term6[10], world_rank, "Test 6");
     }
 
     /* Free the created user-op */
@@ -202,12 +202,12 @@ int main() {
         xsum_large_accumulator lacc;
         for (int i = 0; i < 10; ++i) {
             if ((i % world_size) == world_rank) {
-                xsum_large_add(&lacc, term1[i]);
+                xsum_add(&lacc, term1[i]);
             }
         }
 
         MPI_Allreduce(MPI_IN_PLACE, &lacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
-        large_result(&lacc, term1[10], world_rank, "Test 1");
+        result(&lacc, term1[10], world_rank, "Test 1");
     }
 
     {
@@ -216,7 +216,7 @@ int main() {
         for (int j = 0; j < 1000; ++j) {
             for (int i = 0; i < 10; ++i) {
                 if ((i % world_size) == world_rank) {
-                    xsum_large_add(&llacc, term2[i]);
+                    xsum_add(&llacc, term2[i]);
                 }
             }
         }
@@ -225,7 +225,7 @@ int main() {
         xsum_large_accumulator lacc;
 
         MPI_Allreduce(&llacc, &lacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
-        large_result(&lacc, term2[10] * 1000, world_rank, "Test 2");
+        result(&lacc, term2[10] * 1000, world_rank, "Test 2");
     }
 
     /* Free the created user-op */
