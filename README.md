@@ -1,17 +1,20 @@
 # xsum
-Fast Exact Summation Using Small and Large Superaccumulators
+Fast Exact Summation Using Small and Large Superaccumulators[1].
 
 This library is an easy to use header-only cross-platform C++11 implementation
-and updates to the
+of the
 [Fast Exact Summation Using Small and Large Superaccumulators](#neal_2015).
 
-It partly contains the methods described in the paper "Fast Exact Summation
+- **NOTE:** To see, use or reproduce the results of the original implementation
+  reported in the paper `Fast Exact Summation Using Small and Large Superaccumulators`,
+  by Radford M. Neal, please refer to
+  [FUNCTIONS FOR EXACT SUMMATION](https://gitlab.com/radfordneal/xsum).
+
+It contains the methods described in the paper "Fast Exact Summation
 Using Small and Large Superaccumulators", by Radford M. Neal, available at
 [Fast Exact Summation](https://arxiv.org/abs/1505.05571), and it also includes
 extra summation functionality especially for use in High Performance Message
-Passing Libraries.
-
-It has an `op` handle that can subsequently be used in `MPI_Reduce`,
+Passing Libraries. Where an `op` handle can subsequently be used in `MPI_Reduce`,
 `MPI_Allreduce`, `MPI_Reduce_scatter`, and `MPI_Scan` calls.
 
 
@@ -33,8 +36,9 @@ xsum_add(&sacc, 1.0);
 xsum_add(&sacc, 2.0);
 ```
 
-You can use the same interface `xsum_add` to add the second accumulator to the
-first one without rounding them,
+A small super accumulator can be added to a large one, or two small/large
+accumulators can be added together. Where, `xsum_add` can be used to add the
+second accumulator to the first one without rounding them,
 ```cpp
 // Small acumulators
 xsum_small_accumulator sacc1;
@@ -53,12 +57,9 @@ xsum_add(&lacc1, 1.0);
 xsum_add(&lacc2, 2.0);
 
 xsum_add(&lacc1, &lacc2);
-```
 
-When the final rounded result is desired,
-```cpp
-xsum_round(&sacc1);
-xsum_round(&lacc1);
+// Addition of a small acumulator to a large one
+xsum_add(&lacc1, &sacc1);
 ```
 
 When needed, the large superaccumulator can be rounded to the small one as,
@@ -67,6 +68,14 @@ xsum_large_accumulator lacc;
 
 xsum_small_accumulator *sacc = xsum_round_to_small(&lacc);
 ```
+
+The accumulators can be rounded as,
+```cpp
+xsum_round(&sacc1);
+xsum_round(&lacc1);
+```
+
+## Example
 
 Two simple examples on how to use this library:
 
@@ -107,10 +116,15 @@ or
 icpc simple.cpp -std=c++11 -O3 -fp-model=double
 ```
 
-## Example
-
-
 ### MPI example (`MPI_Allreduce`)
+
+To use a superaccumulator in high-performance message
+passing libraries, first we need an MPI datatype of a superaccumulator, and then
+we define a user-defined global operation `XSUM` that can subsequently be used
+in `MPI_Reduce`, `MPI_Aallreduce`, `MPI_Reduce_scatter`, and `MPI_Scan`.
+
+The below example is a simple demonstration of the use of a superaccumulator on
+multiple processors, where the final summation across all processors is desired.
 
 ```cpp
 #include <mpi.h>
@@ -133,9 +147,10 @@ int main() {
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
+    // Create the MPI data type of the superaccumulator
     MPI_Datatype acc_mpi = create_mpi_type<xsum_large_accumulator>();
 
-    /* Create the XSUM user-op */
+    // Create the XSUM user-op
     MPI_Op XSUM = create_XSUM<xsum_large_accumulator>();
 
     double const a = 0.239e-3;
@@ -158,9 +173,10 @@ int main() {
                   << ", sum 2 =  " << std::setprecision(20) << xsum_large_round(&lacc) << std::endl;
     }
 
-    /* Free the created user-op */
+    // Free the created user-op
     destroy_XSUM(XSUM);
 
+    // Free the created MPI data type
     destroy_mpi_type(acc_mpi);
 
     // Finalize the MPI environment.
@@ -184,6 +200,7 @@ Rank =  0, sum   =  0.95600000000000007194, sum 1 =  0.95599999999998419575, sum
 <a name="neal_2015"></a>
 1. [Neal, Radford M., "Fast exact summation using small and large superaccumulators," arXiv e-prints, (2015)](https://arxiv.org/abs/1505.05571).
 2. https://www.cs.toronto.edu/~radford/xsum.software.html
+3. https://gitlab.com/radfordneal/xsum
 
 ## Contributing
 
