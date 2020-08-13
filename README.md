@@ -17,8 +17,65 @@ It has an `op` handle that can subsequently be used in `MPI_Reduce`,
 
 Usage
 -----
+A small superaccumulator is the preferred method for summing a moderate number
+of terms. It is also a component of the large superaccumulator.
+
+`xsum_small_accumulator` and `xsum_large_accumulator`, both have a default
+constructor, thus they do not need to be initialized. But when it is needed,
+one can simply use the `xsum_init` to initilize them again.
+
+Addition operation one simply is,
+```cpp
+// Adding double values to the small accumulator sacc
+xsum_small_accumulator sacc;
+
+xsum_add(&sacc, 1.0);
+xsum_add(&sacc, 2.0);
+```
+
+You can use the same interface to sum two accumulators,
+```cpp
+// Small acumulators
+xsum_small_accumulator sacc1;
+xsum_small_accumulator sacc2;
+
+xsum_add(&sacc1, 1.0);
+xsum_add(&sacc2, 2.0);
+
+xsum_add(&sacc1, &sacc2);
+
+// Large acumulators
+xsum_large_accumulator lacc1;
+xsum_large_accumulator lacc2;
+
+xsum_add(&lacc1, 1.0);
+xsum_add(&lacc2, 2.0);
+
+xsum_add(&lacc1, &lacc2);
+```
+
+When the final rounded result is desired,
+```cpp
+xsum_round(&sacc1);
+xsum_round(&lacc1);
+```
+
 Two simple examples on how to use this library:
 
+```cpp
+#include <iostream>
+#include "xsum/xsum.hpp"
+
+int main() {
+    xsum_large_accumulator lacc;
+    double const a = 0.123e-10;
+    for (int i = 0; i < 1000; ++i) {
+        xsum_add(&lacc, a);
+    }
+    std::cout << xsum_round(&lacc) << std::endl;
+}
+```
+or
 ```cpp
 #include <iostream>
 #include "xsum/xsum.hpp"
@@ -32,20 +89,6 @@ int main() {
     std::cout << lacc.round() << std::endl;
 }
 ```
-or
-```cpp
-#include <iostream>
-#include "xsum/xsum.hpp"
-
-int main() {
-    xsum_large_accumulator lacc;
-    double const a = 0.123e-10;
-    for (int i = 0; i < 1000; ++i) {
-        xsum_large_add(&lacc, a);
-    }
-    std::cout << xsum_large_round(&lacc) << std::endl;
-}
-```
 
 ```bash
 g++ simple.cpp -std=c++11 -O3
@@ -54,7 +97,6 @@ or
 ```bash
 icpc simple.cpp -std=c++11 -O3 -fp-model=double
 ```
-
 
 ## Example
 
