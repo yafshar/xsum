@@ -79,121 +79,122 @@
 
 /* CONSTANTS DEFINING THE FLOATING POINT FORMAT. */
 
-/* C floating point type sums are done for */
+/*! C floating point type sums are done for */
 using xsum_flt = double;
-/* Signed integer type for a fp value */
+/*! Signed integer type for a fp value */
 using xsum_int = std::int64_t;
-/* Unsigned integer type for a fp value */
+/*! Unsigned integer type for a fp value */
 using xsum_uint = std::uint64_t;
-/* Integer type for holding an exponent */
+/*! Integer type for holding an exponent */
 using xsum_expint = std::int_fast16_t;
-/* TYPE FOR LENGTHS OF ARRAYS.  Must be a signed integer type. */
+/*! TYPE FOR LENGTHS OF ARRAYS.  Must be a signed integer type. */
 using xsum_length = int;
-/* Integer type of small accumulator chunk */
+/*! Integer type of small accumulator chunk */
 using xsum_schunk = std::int64_t;
-/* Integer type of large accumulator chunk, must be EXACTLY 64 bits in size */
+/*! Integer type of large accumulator chunk, must be EXACTLY 64 bits in size */
 using xsum_lchunk = std::uint64_t;
-/* Signed int type of counts for large acc.*/
+/*! Signed int type of counts for large acc.*/
 using xsum_lcount = std::int_least16_t;
-/* Unsigned type for holding used flags */
+/*! Unsigned type for holding used flags */
 using xsum_used = std::uint_fast64_t;
 
-/* Bits in fp mantissa, excludes implict 1 */
+/*! Bits in fp mantissa, excludes implict 1 */
 constexpr int XSUM_MANTISSA_BITS = 52;
-/* Bits in fp exponent */
+/*! Bits in fp exponent */
 constexpr int XSUM_EXP_BITS = 11;
-/* Mask for mantissa bits */
+/*! Mask for mantissa bits */
 constexpr xsum_int XSUM_MANTISSA_MASK = ((static_cast<xsum_int>(1) << XSUM_MANTISSA_BITS) - static_cast<xsum_int>(1));
-/* Mask for exponent */
+/*! Mask for exponent */
 constexpr int XSUM_EXP_MASK = ((1 << XSUM_EXP_BITS) - 1);
-/* Bias added to signed exponent */
+/*! Bias added to signed exponent */
 constexpr int XSUM_EXP_BIAS = ((1 << (XSUM_EXP_BITS - 1)) - 1);
-/* Position of sign bit */
+/*! Position of sign bit */
 constexpr int XSUM_SIGN_BIT = (XSUM_MANTISSA_BITS + XSUM_EXP_BITS);
-/* Mask for sign bit */
+/*! Mask for sign bit */
 constexpr xsum_uint XSUM_SIGN_MASK = (static_cast<xsum_uint>(1) << XSUM_SIGN_BIT);
 
 /* CONSTANTS DEFINING THE SMALL ACCUMULATOR FORMAT. */
 
-/* Bits in chunk of the small accumulator */
+/*! Bits in chunk of the small accumulator */
 constexpr int XSUM_SCHUNK_BITS = 64;
-/* # of low bits of exponent, in one chunk */
+/*! # of low bits of exponent, in one chunk */
 constexpr int XSUM_LOW_EXP_BITS = 5;
-/* Mask for low-order exponent bits */
+/*! Mask for low-order exponent bits */
 constexpr int XSUM_LOW_EXP_MASK = ((1 << XSUM_LOW_EXP_BITS) - 1);
-/* # of high exponent bits for index */
+/*! # of high exponent bits for index */
 constexpr int XSUM_HIGH_EXP_BITS = (XSUM_EXP_BITS - XSUM_LOW_EXP_BITS);
-/* Mask for high-order exponent bits */
+/*! Mask for high-order exponent bits */
 constexpr int XSUM_HIGH_EXP_MASK = ((1 << XSUM_HIGH_EXP_BITS) - 1);
-/* # of chunks in small accumulator */
+/*! # of chunks in small accumulator */
 constexpr int XSUM_SCHUNKS = ((1 << XSUM_HIGH_EXP_BITS) + 3);
-/* Bits in low part of mantissa */
+/*! Bits in low part of mantissa */
 constexpr int XSUM_LOW_MANTISSA_BITS = (1 << XSUM_LOW_EXP_BITS);
-/* Bits in high part */
+/*! Bits in high part */
 constexpr int XSUM_HIGH_MANTISSA_BITS = (XSUM_MANTISSA_BITS - XSUM_LOW_MANTISSA_BITS);
-/* Mask for low bits */
+/*! Mask for low bits */
 constexpr xsum_int XSUM_LOW_MANTISSA_MASK = ((static_cast<xsum_int>(1) << XSUM_LOW_MANTISSA_BITS) - static_cast<xsum_int>(1));
-/* Bits sums can carry into */
+/*! Bits sums can carry into */
 constexpr int XSUM_SMALL_CARRY_BITS = ((XSUM_SCHUNK_BITS - 1) - XSUM_MANTISSA_BITS);
-/* # terms can add before need prop. */
+/*! # terms can add before need prop. */
 constexpr int XSUM_SMALL_CARRY_TERMS = ((1 << XSUM_SMALL_CARRY_BITS) - 1);
 
 /* CONSTANTS DEFINING THE LARGE ACCUMULATOR FORMAT. */
-/* Bits in chunk of the large accumulator */
+
+/*! Bits in chunk of the large accumulator */
 constexpr int XSUM_LCHUNK_BITS = 64;
-/* # of bits in count */
+/*! # of bits in count */
 constexpr int XSUM_LCOUNT_BITS = (64 - XSUM_MANTISSA_BITS);
-/* # of chunks in large accumulator */
+/*! # of chunks in large accumulator */
 constexpr int XSUM_LCHUNKS = (1 << (XSUM_EXP_BITS + 1));
 
-/* DEBUG FLAG.  Set to non-zero for debug ouptut.  Ignored unless xsum.c is compiled with -DDEBUG. */
+/*! DEBUG FLAG.  Set to non-zero for debug ouptut.  Ignored unless xsum.c is compiled with -DDEBUG. */
 constexpr int xsum_debug = 0;
 
-/* UNION OF FLOATING AND INTEGER TYPES. */
+/*! UNION OF FLOATING AND INTEGER TYPES. */
 union fpunion {
     xsum_flt fltv;
     xsum_int intv;
     xsum_uint uintv;
 };
 
-/* CLASSES FOR EXACT SUMMATION. */
+/*! CLASSES FOR EXACT SUMMATION. */
 
 /*!
- * \brief small accumulator base structure
+ * \brief Small super accumulator
  *
  */
 struct xsum_small_accumulator {
-    /* Chunks making up small accumulator */
+    /*! Chunks making up small accumulator */
     xsum_schunk chunk[XSUM_SCHUNKS] = {};
-    /* If non-zero, +Inf, -Inf, or NaN */
+    /*! If non-zero, +Inf, -Inf, or NaN */
     xsum_int Inf = 0;
-    /* If non-zero, a NaN value with payload */
+    /*! If non-zero, a NaN value with payload */
     xsum_int NaN = 0;
-    /* Number of remaining adds before carry */
+    /*! Number of remaining adds before carry */
     int adds_until_propagate = XSUM_SMALL_CARRY_TERMS;
 };
 
 /*!
- * \brief Large accumulator base data struct
+ * \brief Large super accumulator
  *
  */
 struct xsum_large_accumulator {
     xsum_large_accumulator();
 
-    /* Chunks making up large accumulator */
+    /*! Chunks making up large accumulator */
     xsum_lchunk chunk[XSUM_LCHUNKS];
-    /* Counts of # adds remaining for chunks, or -1 if not used yet or special. */
+    /*! Counts of # adds remaining for chunks, or -1 if not used yet or special. */
     xsum_lcount count[XSUM_LCHUNKS];
-    /* Bits indicate chunks in use */
+    /*! Bits indicate chunks in use */
     xsum_used chunks_used[XSUM_LCHUNKS / 64] = {};
-    /* Bits indicate chunk_used entries not 0 */
+    /*! Bits indicate chunk_used entries not 0 */
     xsum_used used_used = 0;
-    /* The small accumulator to condense into */
+    /*! The small accumulator to condense into */
     xsum_small_accumulator sacc;
 };
 
 /*!
- * \brief small accumulator
+ * \brief Small superaccumulator class
  *
  */
 class xsum_small {
@@ -203,78 +204,96 @@ class xsum_small {
      *
      */
     xsum_small();
-
-    /*!
-     * \brief Construct a new xsum small object
-     *
-     * \param sacc
-     */
     explicit xsum_small(xsum_small_accumulator const &sacc);
-
-    /*!
-     * \brief Construct a new xsum small object
-     *
-     * \param sacc
-     */
     explicit xsum_small(xsum_small_accumulator const *sacc);
 
+    /*!
+     * \brief Replaces the xsum_small_accumulator object
+     *
+     */
     void reset();
+
+    /*!
+     * \brief Initilize the xsum_small_accumulator object
+     *
+     */
     void init();
 
-    /*
-     * ADD ONE DOUBLE TO A SMALL ACCUMULATOR.  This is equivalent to, but
-     * somewhat faster than, calling xsum_small_addv with a vector of one
-     * value (which in fact will call this function).
+    /*!
+     * \brief Add one double value to a superaccumulator.
+     *
+     * \param value
      */
     void add(xsum_flt const value);
     void add(xsum_small_accumulator const &value);
     void add(xsum_small_accumulator const *value);
     void add(xsum_small const &value);
 
-    /*
-     * ADD A VECTOR OF FLOATING-POINT NUMBERS TO A SMALL ACCUMULATOR.  Mixes
-     * calls of xsum_carry_propagate with calls of xsum_addv_no_carry to add
-     * parts that are small enough that no carry will result.  Note that
-     * xsum_addv_no_carry may pre-fetch one beyond the last value it sums,
-     * so to be safe, adding the last value has to be done separately at
-     * the end.
+    /*!
+     * \brief Add a vector of double numbers to a superaccumulator.
+     *
+     * Mixes calls of carry_propagate with calls of add_no_carry to add parts
+     * that are small enough that no carry will result. Note that
+     * xsum_add_no_carry may pre-fetch one beyond the last value it sums, so to
+     * be safe, adding the last value has to be done separately at the end.
+     *
+     * \param vec
+     * \param n
      */
     void add(xsum_flt const *vec, xsum_length const n);
 
-    /*
-     * ADD SQUARED NORM OF VECTOR OF FLOATING-POINT NUMBERS TO SMALL ACCUMULATOR.
-     * Mixes calls of xsum_carry_propagate with calls of xsum_add_sqnorm_no_carry
-     * to add parts that are small enough that no carry will result.  Note that
-     * xsum_add_sqnorm_no_carry may pre-fetch one beyond the last value it sums,
-     * so to be safe, adding the last value has to be done separately at
-     * the end.
+    /*!
+     * \brief Add squared norm of vector of double numbers to a superaccumulator.
+     *
+     * Mixes calls of carry_propagate with calls of add_sqnorm_no_carry to add
+     * parts that are small enough that no carry will result. Note that
+     * add_sqnorm_no_carry may pre-fetch one beyond the last value it sums, so
+     * to be safe, adding the last value has to be done separately at
+     *
+     * \param vec vector of double numbers
+     * \param n vector length
      */
     void add_sqnorm(xsum_flt const *vec, xsum_length const n);
 
-    /*
-     * ADD DOT PRODUCT OF VECTORS FLOATING-POINT NUMBERS TO SMALL ACCUMULATOR.
-     * Mixes calls of xsum_carry_propagate with calls of xsum_add_dot_no_carry
-     * to add parts that are small enough that no carry will result.  Note that
-     * xsum_add_dot_no_carry may pre-fetch one beyond the last value it sums,
-     * so to be safe, adding the last value has to be done separately at
-     * the end.
+    /*!
+     * \brief Add dot product of vectors of double numbers to a superaccumulator.
+     *
+     * Mixes calls of carry_propagate with calls of add_dot_no_carry to add
+     * parts that are small enough that no carry will result. Note that
+     * add_dot_no_carry may pre-fetch one beyond the last value it sums, so to
+     * be safe, adding the last value has to be done separately at the end.
+     *
+     * \param vec1 vector of double numbers
+     * \param vec2 vector of double numbers
+     * \param n vector length
      */
     void add_dot(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n);
 
-    /*
-     * RETURN THE RESULT OF ROUNDING A SMALL ACCUMULATOR.  The rounding mode
-     * is to nearest, with ties to even.  The small accumulator may be modified
-     * by this operation (by carry propagation being done), but the value it
-     * represents should not change.
+    /*!
+     * \brief Return the results of rounding a superaccumulator.
+     *
+     * The rounding mode is to nearest, with ties to even. The superaccumulator
+     *  may be modified by this operation (by carry propagation being done), but
+     * the value it represents should not change.
+     *
+     * \return xsum_flt
      */
     xsum_flt round();
 
-    /* Display a small accumulator. */
+    /*!
+     * \brief Display a superaccumulator.
+     *
+     */
     void display();
 
     /* Return number of chunks in use in small accumulator. */
     int chunks_used();
 
+    /*!
+     * \brief Returns a pointer to the xsum_small_accumulator object
+     *
+     * \return xsum_small_accumulator*
+     */
     inline xsum_small_accumulator *get() const noexcept;
 
     /*!
@@ -352,6 +371,10 @@ class xsum_small {
  */
 class xsum_large {
    public:
+    /*!
+     * \brief Construct a new xsum large object
+     *
+     */
     xsum_large();
     explicit xsum_large(xsum_large_accumulator const &lacc);
     explicit xsum_large(xsum_large_accumulator const *lacc);
@@ -360,12 +383,20 @@ class xsum_large {
     explicit xsum_large(xsum_small const &sacc);
     explicit xsum_large(xsum_small const *sacc);
 
+    /*!
+     * \brief Replaces the xsum_large_accumulator object
+     *
+     */
     void reset();
+
+    /*!
+     * \brief Initilize the xsum_large_accumulator object
+     *
+     */
     void init();
 
     /* ADD SINGLE NUMBER TO THE LARGE ACCUMULATOR */
     void add(xsum_flt const value);
-
     void add(xsum_small_accumulator const *const value);
     void add(xsum_large_accumulator *const value);
 
@@ -397,6 +428,11 @@ class xsum_large {
     /* Return number of chunks in use in large accumulator. */
     int chunks_used();
 
+    /*!
+     * \brief Returns a pointer to the xsum_large_accumulator object
+     *
+     * \return xsum_large_accumulator*
+     */
     inline xsum_large_accumulator *get() const noexcept;
 
    private:
@@ -462,7 +498,7 @@ class xsum_large {
     std::unique_ptr<xsum_large_accumulator> _lacc;
 };
 
-/* AUXILLARY FUNCTIONS */
+/* EXACT SUM FUNCTIONS */
 static int xsum_carry_propagate(xsum_small_accumulator *const sacc);
 static inline void xsum_small_add_inf_nan(xsum_small_accumulator *const sacc,
                                           xsum_int const ivalue);
