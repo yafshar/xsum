@@ -24,7 +24,7 @@ of terms. It is also a component of the large superaccumulator.
 constructor, thus they do not need to be initialized. But when it is needed,
 one can simply use the `xsum_init` to initilize them again.
 
-Addition operation one simply is,
+Addition operation is simply a `xsum_add`,
 ```cpp
 // Adding double values to the small accumulator sacc
 xsum_small_accumulator sacc;
@@ -33,7 +33,8 @@ xsum_add(&sacc, 1.0);
 xsum_add(&sacc, 2.0);
 ```
 
-You can use the same interface to sum two accumulators,
+You can use the same interface `xsum_add` to add the second accumulator to the
+first one without rounding them,
 ```cpp
 // Small acumulators
 xsum_small_accumulator sacc1;
@@ -58,6 +59,13 @@ When the final rounded result is desired,
 ```cpp
 xsum_round(&sacc1);
 xsum_round(&lacc1);
+```
+
+When needed, the large superaccumulator can be rounded to the small one as,
+```cpp
+xsum_large_accumulator lacc;
+
+xsum_small_accumulator *sacc = xsum_round_to_small(&lacc);
 ```
 
 Two simple examples on how to use this library:
