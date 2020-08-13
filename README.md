@@ -83,7 +83,8 @@ int main() {
     std::cout << xsum_round(&lacc) << std::endl;
 }
 ```
-or
+
+or a small/large superaccumulator class can simply be used as,
 ```cpp
 #include <iostream>
 #include "xsum/xsum.hpp"
