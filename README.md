@@ -17,7 +17,6 @@ extra summation functionality especially for use in High Performance Message
 Passing Libraries. Where an `op` handle can subsequently be used in `MPI_Reduce`,
 `MPI_Allreduce`, `MPI_Reduce_scatter`, and `MPI_Scan` calls.
 
-
 Usage
 -----
 A small superaccumulator is the preferred method for summing a moderate number
@@ -36,9 +35,14 @@ xsum_add(&sacc, 1.0);
 xsum_add(&sacc, 2.0);
 ```
 
-A small super accumulator can be added to a large one, or two small/large
-accumulators can be added together. Where, `xsum_add` can be used to add the
-second accumulator to the first one without rounding them,
+A small superaccumulator can be added to a large superaccumulator, as well as
+two small superaccumulators can be added together. `xsum_add` can be used to add
+the second superaccumulator to the first one without doing any rounding.
+
+Two large superaccumulator can also be added in the same way. In the case of the
+large superaccumulators, the second one internally will be rounded to a small
+superaccumulator and then the addition can be done.
+
 ```cpp
 // Small acumulators
 xsum_small_accumulator sacc1;
@@ -62,7 +66,7 @@ xsum_add(&lacc1, &lacc2);
 xsum_add(&lacc1, &sacc1);
 ```
 
-When needed, the large superaccumulator can be rounded to the small one as,
+The large superaccumulator can be rounded to the small one as,
 ```cpp
 xsum_large_accumulator lacc;
 
@@ -71,13 +75,13 @@ xsum_small_accumulator *sacc = xsum_round_to_small(&lacc);
 
 The accumulators can be rounded as,
 ```cpp
-xsum_round(&sacc1);
-xsum_round(&lacc1);
+double s = xsum_round(&sacc1);
+double l = xsum_round(&lacc1);
 ```
 
 ## Example
 
-Two simple examples on how to use this library:
+Two simple examples on how to use the library:
 
 ```cpp
 #include <iostream>
@@ -109,11 +113,11 @@ int main() {
 ```
 
 ```bash
-g++ simple.cpp -std=c++11 -O3
+g++ simple.cpp -std=c++11 -O3 -o simple
 ```
 or
 ```bash
-icpc simple.cpp -std=c++11 -O3 -fp-model=double
+icpc simple.cpp -std=c++11 -O3 -fp-model=double -o simple
 ```
 
 ### MPI example (`MPI_Allreduce`)
