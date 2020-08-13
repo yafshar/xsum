@@ -185,7 +185,7 @@ void myXSUM<xsum_small_accumulator>(void *invec, void *inoutvec, int *len, MPI_D
     xsum_small_accumulator *inout = static_cast<xsum_small_accumulator *>(inoutvec);
 
     for (int i = 0; i < *len; ++i, ++in, ++inout) {
-        xsum_small_add(inout, in);
+        xsum_add(inout, in);
     }
 }
 
@@ -195,7 +195,7 @@ void myXSUM<xsum_large_accumulator>(void *invec, void *inoutvec, int *len, MPI_D
     xsum_large_accumulator *inout = static_cast<xsum_large_accumulator *>(inoutvec);
 
     for (int i = 0; i < *len; ++i, ++in, ++inout) {
-        xsum_large_add(inout, in);
+        xsum_add(inout, in);
     }
 }
 
