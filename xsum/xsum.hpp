@@ -51,17 +51,24 @@
 // Contributors:
 //    Yaser Afshar
 //
-// Brief: This file is adapted and rewritten in C++ from the original
-//        work of Radford M. Neal, 2015.
+// Brief: The current implementation contains the methods described in the
+//        paper "Fast Exact Summation Using Small and Large Superaccumulators",
+//        , by Radford M. Neal, available at https://arxiv.org/abs/1505.05571,
+//        and implemented by Radford M. Neal at
 //        https://gitlab.com/radfordneal/xsum.git
 //
-//        It partly contains the methods described in the paper
-//        "Fast Exact Summation Using Small and Large Superaccumulators", by
-//        Radford M. Neal, available at https://arxiv.org/abs/1505.05571, and
-//        extra summation for MPI all to all communication has been added to it.
+//        It is adapted, rewritten and amended in C++ from the original work of
+//        R. M. Neal by Yaser Afshar.
+//        It has been rewritten with the goal of ease of use and C++ portability
+//        and it also includes extra classes and functionalities especially for
+//        the use in High Performance Message Passing Libraries. Where an `op`
+//        handle can subsequently be used in `MPI_Reduce`,`MPI_Allreduce`,
+//        `MPI_Reduce_scatter`, and `MPI_Scan` calls.
 //
-//        This package is amended and updated by
-//        Yaser Afshar
+// Note:  To see, use or reproduce the results of the original implementation
+//        reported in the paper `Fast Exact Summation Using Small and Large
+//        Superaccumulators`, by Radford M. Neal, please refer to
+//        https://gitlab.com/radfordneal/xsum.
 //
 
 #ifndef XSUM_HPP
