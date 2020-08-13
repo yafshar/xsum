@@ -231,8 +231,8 @@ int different(double const a, double const b) {
 }
 
 void small_result(xsum_small_accumulator *const sacc, double const s, int const i) {
-    double const r = xsum_small_round(sacc);
-    double const r2 = xsum_small_round(sacc);
+    double const r = xsum_round(sacc);
+    double const r2 = xsum_round(sacc);
     ++total_small_test;
 
     if (different(r, r2)) {
@@ -256,8 +256,8 @@ void small_result(xsum_small_accumulator *const sacc, double const s, int const 
 }
 
 void large_result(xsum_large_accumulator *const lacc, double const s, int const i) {
-    double const r = xsum_large_round(lacc);
-    double const r2 = xsum_large_round(lacc);
+    double const r = xsum_round(lacc);
+    double const r2 = xsum_round(lacc);
     ++total_large_test;
 
     if (different(r, r2)) {
@@ -304,11 +304,11 @@ int main(int argc, char **argv) {
         double const s = one_term[i];
 
         xsum_small_accumulator sacc;
-        xsum_small_add(&sacc, one_term[i]);
+        xsum_add(&sacc, one_term[i]);
         small_result(&sacc, s, i);
 
         xsum_large_accumulator lacc;
-        xsum_large_add(&lacc, *(one_term + i));
+        xsum_add(&lacc, *(one_term + i));
         large_result(&lacc, s, i);
     }
 
@@ -331,13 +331,13 @@ int main(int argc, char **argv) {
 
         xsum_small_accumulator sacc;
         for (int j = 0; j < REP1; ++j) {
-            xsum_small_add(&sacc, one_term[i]);
+            xsum_add(&sacc, one_term[i]);
         }
         small_result(&sacc, s, i);
 
         xsum_large_accumulator lacc;
         for (int j = 0; j < REP1; ++j) {
-            xsum_large_add(&lacc, one_term[i]);
+            xsum_add(&lacc, one_term[i]);
         }
         large_result(&lacc, s, i);
     }
@@ -365,13 +365,13 @@ int main(int argc, char **argv) {
         xsum_small_accumulator sacc2;
 
         for (int j = 0; j < REP1 / 2; ++j) {
-            xsum_small_add(&sacc1, one_term[i]);
+            xsum_add(&sacc1, one_term[i]);
         }
         for (int j = 0; j < REP1 / 2; ++j) {
-            xsum_small_add(&sacc2, one_term[i]);
+            xsum_add(&sacc2, one_term[i]);
         }
 
-        xsum_small_add(&sacc1, &sacc2);
+        xsum_add(&sacc1, &sacc2);
         small_result(&sacc1, s, i);
     }
 
@@ -384,21 +384,21 @@ int main(int argc, char **argv) {
         xsum_small_accumulator sacc4;
 
         for (int j = 0; j < REP1 / 4; ++j) {
-            xsum_small_add(&sacc1, one_term[i]);
+            xsum_add(&sacc1, one_term[i]);
         }
         for (int j = 0; j < REP1 / 4; ++j) {
-            xsum_small_add(&sacc2, one_term[i]);
+            xsum_add(&sacc2, one_term[i]);
         }
         for (int j = 0; j < REP1 / 4; ++j) {
-            xsum_small_add(&sacc3, one_term[i]);
+            xsum_add(&sacc3, one_term[i]);
         }
         for (int j = 0; j < REP1 / 4; ++j) {
-            xsum_small_add(&sacc4, one_term[i]);
+            xsum_add(&sacc4, one_term[i]);
         }
 
-        xsum_small_add(&sacc1, &sacc2);
-        xsum_small_add(&sacc1, &sacc3);
-        xsum_small_add(&sacc1, &sacc4);
+        xsum_add(&sacc1, &sacc2);
+        xsum_add(&sacc1, &sacc3);
+        xsum_add(&sacc1, &sacc4);
         small_result(&sacc1, s, i);
     }
 
@@ -408,11 +408,11 @@ int main(int argc, char **argv) {
         double const s = two_term[i] + two_term[i + 1];
 
         xsum_small_accumulator sacc;
-        xsum_small_add(&sacc, two_term + i, 2);
+        xsum_add(&sacc, two_term + i, 2);
         small_result(&sacc, s, i / 2);
 
         xsum_large_accumulator lacc;
-        xsum_large_add(&lacc, two_term + i, 2);
+        xsum_add(&lacc, two_term + i, 2);
         large_result(&lacc, s, i / 2);
     }
 
@@ -422,9 +422,9 @@ int main(int argc, char **argv) {
         xsum_small_accumulator sacc;
         xsum_small_accumulator sacc2;
 
-        xsum_small_add(&sacc, *(two_term + i));
-        xsum_small_add(&sacc2, *(two_term + i + 1));
-        xsum_small_add(&sacc, &sacc2);
+        xsum_add(&sacc, *(two_term + i));
+        xsum_add(&sacc2, *(two_term + i + 1));
+        xsum_add(&sacc, &sacc2);
         small_result(&sacc, s, i / 2);
     }
 
@@ -434,9 +434,9 @@ int main(int argc, char **argv) {
         xsum_small_accumulator sacc2;
         xsum_small_accumulator sacc;
 
-        xsum_small_add(&sacc2, *(two_term + i));
-        xsum_small_add(&sacc, *(two_term + i + 1));
-        xsum_small_add(&sacc, &sacc2);
+        xsum_add(&sacc2, *(two_term + i));
+        xsum_add(&sacc, *(two_term + i + 1));
+        xsum_add(&sacc, &sacc2);
         small_result(&sacc, s, i / 2);
     }
 
@@ -458,11 +458,11 @@ int main(int argc, char **argv) {
         double const s = three_term[i + 3];
 
         xsum_small_accumulator sacc;
-        xsum_small_add(&sacc, three_term + i, 3);
+        xsum_add(&sacc, three_term + i, 3);
         small_result(&sacc, s, i / 4);
 
         xsum_large_accumulator lacc;
-        xsum_large_add(&lacc, three_term + i, 3);
+        xsum_add(&lacc, three_term + i, 3);
         large_result(&lacc, s, i / 4);
     }
 
@@ -472,11 +472,11 @@ int main(int argc, char **argv) {
         xsum_small_accumulator sacc;
         xsum_small_accumulator sacc2;
         xsum_small_accumulator sacc3;
-        xsum_small_add(&sacc, three_term[i]);
-        xsum_small_add(&sacc2, three_term[i + 1]);
-        xsum_small_add(&sacc3, three_term[i + 2]);
-        xsum_small_add(&sacc, &sacc2);
-        xsum_small_add(&sacc, &sacc3);
+        xsum_add(&sacc, three_term[i]);
+        xsum_add(&sacc2, three_term[i + 1]);
+        xsum_add(&sacc3, three_term[i + 2]);
+        xsum_add(&sacc, &sacc2);
+        xsum_add(&sacc, &sacc3);
         small_result(&sacc, s, i / 4);
     }
 
@@ -485,10 +485,10 @@ int main(int argc, char **argv) {
 
         xsum_small_accumulator sacc;
         xsum_small_accumulator sacc2[3];
-        xsum_small_add(sacc2, three_term[i]);
-        xsum_small_add(sacc2 + 1, three_term[i + 1]);
-        xsum_small_add(sacc2 + 2, three_term[i + 2]);
-        xsum_small_add(&sacc, sacc2, 3);
+        xsum_add(sacc2, three_term[i]);
+        xsum_add(sacc2 + 1, three_term[i + 1]);
+        xsum_add(sacc2 + 2, three_term[i + 2]);
+        xsum_add(&sacc, sacc2, 3);
         small_result(&sacc, s, i / 4);
     }
 
@@ -510,11 +510,11 @@ int main(int argc, char **argv) {
         double const s = ten_term[i + 10];
 
         xsum_small_accumulator sacc;
-        xsum_small_add(&sacc, ten_term + i, 10);
+        xsum_add(&sacc, ten_term + i, 10);
         small_result(&sacc, s, i / 11);
 
         xsum_large_accumulator lacc;
-        xsum_large_add(&lacc, ten_term + i, 10);
+        xsum_add(&lacc, ten_term + i, 10);
         large_result(&lacc, s, i / 11);
     }
 
@@ -523,9 +523,9 @@ int main(int argc, char **argv) {
 
         xsum_small_accumulator sacc;
         xsum_small_accumulator sacc2;
-        xsum_small_add(&sacc, ten_term + i, 5);
-        xsum_small_add(&sacc2, ten_term + i + 5, 5);
-        xsum_small_add(&sacc, &sacc2);
+        xsum_add(&sacc, ten_term + i, 5);
+        xsum_add(&sacc2, ten_term + i + 5, 5);
+        xsum_add(&sacc, &sacc2);
         small_result(&sacc, s, i / 11);
     }
 
@@ -548,13 +548,13 @@ int main(int argc, char **argv) {
 
         xsum_small_accumulator sacc;
         for (int j = 0; j < REP10; ++j) {
-            xsum_small_add(&sacc, ten_term + i, 10);
+            xsum_add(&sacc, ten_term + i, 10);
         }
         small_result(&sacc, s, i / 11);
 
         xsum_large_accumulator lacc;
         for (int j = 0; j < REP10; ++j) {
-            xsum_large_add(&lacc, ten_term + i, 10);
+            xsum_add(&lacc, ten_term + i, 10);
         }
         large_result(&lacc, s, i / 11);
     }
@@ -564,10 +564,10 @@ int main(int argc, char **argv) {
 
         xsum_large_accumulator lacc;
         for (int j = 0; j < REP10; ++j) {
-            xsum_large_add(&lacc, ten_term + i, 10);
+            xsum_add(&lacc, ten_term + i, 10);
         }
 
-        auto sacc = xsum_large_round_to_small_accumulator(&lacc);
+        auto sacc = xsum_round_to_small(&lacc);
         small_result(sacc, s, i / 11);
     }
 
@@ -594,13 +594,13 @@ int main(int argc, char **argv) {
         xsum_large_accumulator lacc2;
 
         for (int j = 0; j < REP10 / 2; ++j) {
-            xsum_large_add(&lacc1, ten_term + i, 10);
+            xsum_add(&lacc1, ten_term + i, 10);
         }
         for (int j = 0; j < REP10 / 2; ++j) {
-            xsum_large_add(&lacc2, ten_term + i, 10);
+            xsum_add(&lacc2, ten_term + i, 10);
         }
 
-        xsum_large_add(&lacc1, &lacc2);
+        xsum_add(&lacc1, &lacc2);
 
         large_result(&lacc1, s, i / 11);
     }
