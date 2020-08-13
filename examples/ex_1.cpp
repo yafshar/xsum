@@ -1,5 +1,3 @@
-/* AUTOMATIC CORRECTNESS CHECKS FOR FUNCTIONS FOR EXACT SUMMATION. */
-
 /* Copyright 2015, 2018 Radford M. Neal
 
    Permission is hereby granted, free of charge, to any person obtaining
@@ -21,6 +19,20 @@
    OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
+//
+// Copyright (c) 2019--2020, Regents of the University of Minnesota.
+// All rights reserved.
+//
+// Contributors:
+//    Yaser Afshar
+//
+// Brief: This file is adapted and rewritten in C++ from the original
+//        work of Radford M. Neal, 2015.
+//        https://gitlab.com/radfordneal/xsum.git
+
+
+// CORRECTNESS CHECKS FOR FUNCTIONS FOR EXACT SUMMATION.
 
 #include <cmath>
 #include <cstdio>
@@ -230,7 +242,7 @@ int different(double const a, double const b) {
     return (std::isnan(a) != std::isnan(b)) || (!std::isnan(a) && !std::isnan(b) && a != b);
 }
 
-void small_result(xsum_small_accumulator *const sacc, double const s, int const i) {
+void result(xsum_small_accumulator *const sacc, double const s, int const i) {
     double const r = xsum_round(sacc);
     double const r2 = xsum_round(sacc);
     ++total_small_test;
@@ -255,7 +267,7 @@ void small_result(xsum_small_accumulator *const sacc, double const s, int const 
     }
 }
 
-void large_result(xsum_large_accumulator *const lacc, double const s, int const i) {
+void result(xsum_large_accumulator *const lacc, double const s, int const i) {
     double const r = xsum_round(lacc);
     double const r2 = xsum_round(lacc);
     ++total_large_test;
@@ -287,15 +299,15 @@ int main(int argc, char **argv) {
     {
         xsum_small_accumulator sacc;
         xsum_large_accumulator lacc;
-        small_result(&sacc, 0, 0);
-        large_result(&lacc, 0, 0);
+        result(&sacc, 0, 0);
+        result(&lacc, 0, 0);
     }
 
     {
         xsum_small sacc;
         xsum_large lacc;
-        small_result(sacc.get(), 0, 0);
-        large_result(lacc.get(), 0, 0);
+        result(sacc.get(), 0, 0);
+        result(lacc.get(), 0, 0);
     }
 
     std::printf("\nB: ONE TERM TESTS\n");
@@ -305,11 +317,11 @@ int main(int argc, char **argv) {
 
         xsum_small_accumulator sacc;
         xsum_add(&sacc, one_term[i]);
-        small_result(&sacc, s, i);
+        result(&sacc, s, i);
 
         xsum_large_accumulator lacc;
         xsum_add(&lacc, *(one_term + i));
-        large_result(&lacc, s, i);
+        result(&lacc, s, i);
     }
 
     for (int i = 0; i < one_term_size; ++i) {
@@ -317,11 +329,11 @@ int main(int argc, char **argv) {
 
         xsum_small sacc;
         sacc.add(one_term[i]);
-        small_result(sacc.get(), s, i);
+        result(sacc.get(), s, i);
 
         xsum_large lacc;
         lacc.add(*(one_term + i));
-        large_result(lacc.get(), s, i);
+        result(lacc.get(), s, i);
     }
 
     std::printf("\nC: ONE TERM TESTS TIMES %d\n", REP1);
@@ -333,13 +345,13 @@ int main(int argc, char **argv) {
         for (int j = 0; j < REP1; ++j) {
             xsum_add(&sacc, one_term[i]);
         }
-        small_result(&sacc, s, i);
+        result(&sacc, s, i);
 
         xsum_large_accumulator lacc;
         for (int j = 0; j < REP1; ++j) {
             xsum_add(&lacc, one_term[i]);
         }
-        large_result(&lacc, s, i);
+        result(&lacc, s, i);
     }
 
     for (int i = 0; i < one_term_size; ++i) {
@@ -349,13 +361,13 @@ int main(int argc, char **argv) {
         for (int j = 0; j < REP1; ++j) {
             sacc.add(one_term[i]);
         }
-        small_result(sacc.get(), s, i);
+        result(sacc.get(), s, i);
 
         xsum_large lacc;
         for (int j = 0; j < REP1; ++j) {
             lacc.add(one_term[i]);
         }
-        large_result(lacc.get(), s, i);
+        result(lacc.get(), s, i);
     }
 
     for (int i = 0; i < one_term_size; ++i) {
@@ -372,7 +384,7 @@ int main(int argc, char **argv) {
         }
 
         xsum_add(&sacc1, &sacc2);
-        small_result(&sacc1, s, i);
+        result(&sacc1, s, i);
     }
 
     for (int i = 0; i < one_term_size; ++i) {
@@ -399,7 +411,7 @@ int main(int argc, char **argv) {
         xsum_add(&sacc1, &sacc2);
         xsum_add(&sacc1, &sacc3);
         xsum_add(&sacc1, &sacc4);
-        small_result(&sacc1, s, i);
+        result(&sacc1, s, i);
     }
 
     std::printf("\nD: TWO TERM TESTS\n");
@@ -409,11 +421,11 @@ int main(int argc, char **argv) {
 
         xsum_small_accumulator sacc;
         xsum_add(&sacc, two_term + i, 2);
-        small_result(&sacc, s, i / 2);
+        result(&sacc, s, i / 2);
 
         xsum_large_accumulator lacc;
         xsum_add(&lacc, two_term + i, 2);
-        large_result(&lacc, s, i / 2);
+        result(&lacc, s, i / 2);
     }
 
     for (int i = 0; i < two_term_size; i += 2) {
@@ -425,7 +437,7 @@ int main(int argc, char **argv) {
         xsum_add(&sacc, *(two_term + i));
         xsum_add(&sacc2, *(two_term + i + 1));
         xsum_add(&sacc, &sacc2);
-        small_result(&sacc, s, i / 2);
+        result(&sacc, s, i / 2);
     }
 
     for (int i = 0; i < two_term_size; i += 2) {
@@ -437,7 +449,7 @@ int main(int argc, char **argv) {
         xsum_add(&sacc2, *(two_term + i));
         xsum_add(&sacc, *(two_term + i + 1));
         xsum_add(&sacc, &sacc2);
-        small_result(&sacc, s, i / 2);
+        result(&sacc, s, i / 2);
     }
 
     for (int i = 0; i < two_term_size; i += 2) {
@@ -445,11 +457,11 @@ int main(int argc, char **argv) {
 
         xsum_small sacc;
         sacc.add(two_term + i, 2);
-        small_result(sacc.get(), s, i / 2);
+        result(sacc.get(), s, i / 2);
 
         xsum_large lacc;
         lacc.add(two_term + i, 2);
-        large_result(lacc.get(), s, i / 2);
+        result(lacc.get(), s, i / 2);
     }
 
     std::printf("\nE: THREE TERM TESTS\n");
@@ -459,11 +471,11 @@ int main(int argc, char **argv) {
 
         xsum_small_accumulator sacc;
         xsum_add(&sacc, three_term + i, 3);
-        small_result(&sacc, s, i / 4);
+        result(&sacc, s, i / 4);
 
         xsum_large_accumulator lacc;
         xsum_add(&lacc, three_term + i, 3);
-        large_result(&lacc, s, i / 4);
+        result(&lacc, s, i / 4);
     }
 
     for (int i = 0; i < three_term_size; i += 4) {
@@ -477,7 +489,7 @@ int main(int argc, char **argv) {
         xsum_add(&sacc3, three_term[i + 2]);
         xsum_add(&sacc, &sacc2);
         xsum_add(&sacc, &sacc3);
-        small_result(&sacc, s, i / 4);
+        result(&sacc, s, i / 4);
     }
 
     for (int i = 0; i < three_term_size; i += 4) {
@@ -489,7 +501,7 @@ int main(int argc, char **argv) {
         xsum_add(sacc2 + 1, three_term[i + 1]);
         xsum_add(sacc2 + 2, three_term[i + 2]);
         xsum_add(&sacc, sacc2, 3);
-        small_result(&sacc, s, i / 4);
+        result(&sacc, s, i / 4);
     }
 
     for (int i = 0; i < three_term_size; i += 4) {
@@ -497,11 +509,11 @@ int main(int argc, char **argv) {
 
         xsum_small sacc;
         sacc.add(three_term + i, 3);
-        small_result(sacc.get(), s, i / 4);
+        result(sacc.get(), s, i / 4);
 
         xsum_large lacc;
         lacc.add(three_term + i, 3);
-        large_result(lacc.get(), s, i / 4);
+        result(lacc.get(), s, i / 4);
     }
 
     std::printf("\nF: TEN TERM TESTS\n");
@@ -511,11 +523,11 @@ int main(int argc, char **argv) {
 
         xsum_small_accumulator sacc;
         xsum_add(&sacc, ten_term + i, 10);
-        small_result(&sacc, s, i / 11);
+        result(&sacc, s, i / 11);
 
         xsum_large_accumulator lacc;
         xsum_add(&lacc, ten_term + i, 10);
-        large_result(&lacc, s, i / 11);
+        result(&lacc, s, i / 11);
     }
 
     for (int i = 0; i < ten_term_size; i += 11) {
@@ -526,7 +538,7 @@ int main(int argc, char **argv) {
         xsum_add(&sacc, ten_term + i, 5);
         xsum_add(&sacc2, ten_term + i + 5, 5);
         xsum_add(&sacc, &sacc2);
-        small_result(&sacc, s, i / 11);
+        result(&sacc, s, i / 11);
     }
 
     for (int i = 0; i < ten_term_size; i += 11) {
@@ -534,11 +546,11 @@ int main(int argc, char **argv) {
 
         xsum_small sacc;
         sacc.add(ten_term + i, 10);
-        small_result(sacc.get(), s, i / 11);
+        result(sacc.get(), s, i / 11);
 
         xsum_large lacc;
         lacc.add(ten_term + i, 10);
-        large_result(lacc.get(), s, i / 11);
+        result(lacc.get(), s, i / 11);
     }
 
     std::printf("\nG: TEN TERM TESTS TIMES %d\n", REP10);
@@ -550,13 +562,13 @@ int main(int argc, char **argv) {
         for (int j = 0; j < REP10; ++j) {
             xsum_add(&sacc, ten_term + i, 10);
         }
-        small_result(&sacc, s, i / 11);
+        result(&sacc, s, i / 11);
 
         xsum_large_accumulator lacc;
         for (int j = 0; j < REP10; ++j) {
             xsum_add(&lacc, ten_term + i, 10);
         }
-        large_result(&lacc, s, i / 11);
+        result(&lacc, s, i / 11);
     }
 
     for (int i = 0; i < ten_term_size; i += 11) {
@@ -568,7 +580,7 @@ int main(int argc, char **argv) {
         }
 
         auto sacc = xsum_round_to_small(&lacc);
-        small_result(sacc, s, i / 11);
+        result(sacc, s, i / 11);
     }
 
     for (int i = 0; i < ten_term_size; i += 11) {
@@ -578,13 +590,13 @@ int main(int argc, char **argv) {
         for (int j = 0; j < REP10; ++j) {
             sacc.add(ten_term + i, 10);
         }
-        small_result(sacc.get(), s, i / 11);
+        result(sacc.get(), s, i / 11);
 
         xsum_large lacc;
         for (int j = 0; j < REP10; ++j) {
             lacc.add(ten_term + i, 10);
         }
-        large_result(lacc.get(), s, i / 11);
+        result(lacc.get(), s, i / 11);
     }
 
     for (int i = 0; i < ten_term_size; i += 11) {
@@ -602,7 +614,7 @@ int main(int argc, char **argv) {
 
         xsum_add(&lacc1, &lacc2);
 
-        large_result(&lacc1, s, i / 11);
+        result(&lacc1, s, i / 11);
     }
 
     if (small_test_fails || large_test_fails) {

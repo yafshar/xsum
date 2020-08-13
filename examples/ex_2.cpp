@@ -1,3 +1,13 @@
+//
+// Copyright (c) 2019--2020, Regents of the University of Minnesota.
+// All rights reserved.
+//
+// Contributors:
+//    Yaser Afshar
+//
+
+// CORRECTNESS CHECKS FOR FUNCTIONS FOR EXACT SUMMATION ON MULTI PROCESSORS
+
 #include <mpi.h>
 
 #include <algorithm>
@@ -77,11 +87,12 @@ int main() {
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
+    // Create the MPI data type of the superaccumulator
     MPI_Datatype acc_mpi;
     create_mpi_type<xsum_small_accumulator>(acc_mpi);
 
+    // Create the XSUM user-op
     MPI_Op XSUM;
-    /* Create the XSUM user-op */
     create_XSUM<xsum_small_accumulator>(XSUM);
 
     if (world_rank == 0) {
@@ -184,13 +195,14 @@ int main() {
         result(&sacc, term6[10], world_rank, "Test 6");
     }
 
-    /* Free the created user-op */
+    // Free the created user-op
     MPI_Op_free(&XSUM);
     destroy_mpi_type(acc_mpi);
 
+    // Create the MPI data type of the superaccumulator
     create_mpi_type<xsum_large_accumulator>(acc_mpi);
 
-    /* Create the XSUM user-op */
+    // Create the XSUM user-op
     create_XSUM<xsum_large_accumulator>(XSUM);
 
     if (world_rank == 0) {
@@ -228,8 +240,10 @@ int main() {
         result(&lacc, term2[10] * 1000, world_rank, "Test 2");
     }
 
-    /* Free the created user-op */
+    // Free the created user-op
     MPI_Op_free(&XSUM);
+
+     // Free the created MPI data type
     destroy_mpi_type(acc_mpi);
 
     // Finalize the MPI environment.
