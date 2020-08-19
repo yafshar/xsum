@@ -320,9 +320,9 @@ Rank =  0, sum   =  0.95600000000000007194, sum 1 =  0.95599999999998419575, sum
 ## References
 
 <a name="neal_2015"></a>
-1- Neal, Radford M., "Fast exact summation using small and large superaccumulators," [arXiv e-prints]((https://arxiv.org/abs/1505.05571)), (2015)
-2- https://www.cs.toronto.edu/~radford/xsum.software.html
-3- https://gitlab.com/radfordneal/xsum
+1. Neal, Radford M., "Fast exact summation using small and large superaccumulators," [arXiv e-prints]((https://arxiv.org/abs/1505.05571)), (2015)
+2. https://www.cs.toronto.edu/~radford/xsum.software.html
+3. https://gitlab.com/radfordneal/xsum
 
 ## Contributing
 
