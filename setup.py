@@ -17,13 +17,6 @@ class get_pybind_include(object):
         return pybind11.get_include()
 
 
-xsum_modules = [Extension('xsum',
-                          sorted(['python/xsum.cpp']),
-                          include_dirs=[get_pybind_include(), ],
-                          language='c++'
-                          ), ]
-
-
 # cf http://bugs.python.org/issue26689
 def has_flag(compiler, flagname):
     """Return a boolean indicating whether a flag name is supported on
@@ -90,6 +83,12 @@ class BuildExt(build_ext):
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+xsum_modules = [Extension('xsum',
+                          sorted(['xsum/xsum.cpp']),
+                          include_dirs=[get_pybind_include(), ],
+                          language='c++'
+                          ), ]
 
 setup(
     name='xsum',
