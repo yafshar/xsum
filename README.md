@@ -1,8 +1,12 @@
 # Fast Exact Summation Using Small and Large Superaccumulators (XSUM)
 
-XSUM[1] is a library for performing exact summation using super-accumulators.
-This library is easy to use header-only cross-platform C++11 implementation and
-also contains Python bindings.
+[XSUM](#neal_2015) is a library for performing exact summation using
+super-accumulators. It provides methods for exactly summing a set of
+floating-point numbers, where using a simple summation and the rounding which
+happens after each addition could be an important factor in many applications.
+
+This library is an easy to use header-only cross-platform C++11 implementation
+and also contains Python bindings.
 
 The main algorithm is taken from the original C library
 [FUNCTIONS FOR EXACT SUMMATION](https://gitlab.com/radfordneal/xsum) described
@@ -11,17 +15,17 @@ in the paper
 [Radford M. Neal](https://www.cs.toronto.edu/~radford).
 
 The code is rewritten in C++ and amended with more functionality with the goal
-of ease of use. The Python bindings help use the exact summation in a Python
-code.
+of ease of use. The provided Python bindings provide the *exact summation*
+interface in a Python code.
 
-The C++ code includes extra summation functionality, especially useful in
-high-performance message passing libraries (like
+The C++ code also includes extra summation functionalities, which are especially
+useful in high-performance message passing libraries (like
 [OpenMPI](https://www.open-mpi.org/) and [MPICH](https://www.mpich.org/)).
 Where binding a user-defined global summation operation to an `op` handle can
 subsequently be used in `MPI_Reduce,` `MPI_Allreduce,` `MPI_Reduce_scatter,` and
 `MPI_Scan` or a similar calls.
 
-- **NOTE:** To see, or use or reproduce the results of the original
+- **NOTE:** To see or use or reproduce the results of the original
   implementation reported in the paper
   `Fast Exact Summation Using Small and Large Superaccumulators`, by Radford M.
   Neal, please refer to
@@ -316,10 +320,9 @@ Rank =  0, sum   =  0.95600000000000007194, sum 1 =  0.95599999999998419575, sum
 ## References
 
 <a name="neal_2015"></a>
-
-[1]: [Neal, Radford M., "Fast exact summation using small and large superaccumulators," arXiv e-prints, (2015)](https://arxiv.org/abs/1505.05571).
-[2]: https://www.cs.toronto.edu/~radford/xsum.software.html
-[3]: https://gitlab.com/radfordneal/xsum
+1- Neal, Radford M., "Fast exact summation using small and large superaccumulators," [arXiv e-prints]((https://arxiv.org/abs/1505.05571)), (2015)
+2- https://www.cs.toronto.edu/~radford/xsum.software.html
+3- https://gitlab.com/radfordneal/xsum
 
 ## Contributing
 
