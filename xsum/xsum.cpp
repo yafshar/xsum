@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
-#include "../xsum/xsum.hpp"
+#include "xsum.hpp"
 
 template <typename T>
 void py_xsum_add(T *const acc, pybind11::array_t<xsum_flt> const &py_vec)
