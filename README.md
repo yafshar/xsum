@@ -176,16 +176,16 @@ Two simple examples on how to use the library:
 #include "xsum/xsum.hpp"
 
 int main() {
-    // Large superaccumulator
-    xsum_large_accumulator lacc;
-    double const a = 0.7209e-5;
-    double s = 0;
-    for (int i = 0; i < 10000; ++i) {
-        xsum_add(&lacc, a);
-        s += a;
-    }
-    std::cout << std::setprecision(20) << xsum_round(&lacc) << "\n"
-              << std::setprecision(20) << s << "\n";
+  // Large superaccumulator
+  xsum_large_accumulator lacc;
+  double const a = 0.7209e-5;
+  double s = 0;
+  for (int i = 0; i < 10000; ++i) {
+    xsum_add(&lacc, a);
+    s += a;
+  }
+  std::cout << std::setprecision(20) << xsum_round(&lacc) << "\n"
+            << std::setprecision(20) << s << "\n";
 }
 ```
 
@@ -198,16 +198,16 @@ or a `xsum_small` or `xsum_large` objects can simply be used as,
 #include "xsum/xsum.hpp"
 
 int main() {
-    // Large superaccumulator
-    xsum_large lacc;
-    double const a = 0.7209e-5;
-    double s = 0;
-    for (int i = 0; i < 10000; ++i) {
-        lacc.add(a);
-        s += a;
-    }
-    std::cout << std::setprecision(20) << lacc.round() << "\n"
-              << std::setprecision(20) << s << "\n";
+  // Large superaccumulator
+  xsum_large lacc;
+  double const a = 0.7209e-5;
+  double s = 0;
+  for (int i = 0; i < 10000; ++i) {
+    lacc.add(a);
+    s += a;
+  }
+  std::cout << std::setprecision(20) << lacc.round() << "\n"
+            << std::setprecision(20) << s << "\n";
 }
 ```
 
@@ -323,7 +323,7 @@ Rank =  0, sum   =  0.95600000000000007194, sum 1 =  0.95599999999998419575, sum
 
 ## Contributing
 
-Copyright (c) 2019--2020, Regents of the University of Minnesota.\
+Copyright (c) 2020, Regents of the University of Minnesota.\
 All rights reserved.
 
 Contributors:\
