@@ -425,18 +425,18 @@ class xsum_large {
    * ADD A VECTOR OF FLOATING-POINT NUMBERS TO A LARGE ACCUMULATOR.
    */
   void add(xsum_flt const *vec, xsum_length const n);
-  void add(std::vetor<xsum_flt> const &vec);
+  void add(std::vector<xsum_flt> const &vec);
 
   /* ADD SQUARED NORM OF VECTOR OF FLOATING-POINT NUMBERS TO LARGE ACCUMULATOR.
    */
   void add_sqnorm(xsum_flt const *vec, xsum_length const n);
-  void add_sqnorm(std::vetor<xsum_flt> const &vec);
+  void add_sqnorm(std::vector<xsum_flt> const &vec);
 
   /* ADD DOT PRODUCT OF VECTORS OF FLOATING-POINT NUMBERS TO LARGE ACCUMULATOR.
    */
   void add_dot(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n);
-  void add_dot(std::vetor<xsum_flt> const &vec1,
-               std::vetor<xsum_flt> const &vec2);
+  void add_dot(std::vector<xsum_flt> const &vec1,
+               std::vector<xsum_flt> const &vec2);
 
   /*
    * RETURN THE RESULT OF ROUNDING A SMALL ACCUMULATOR.  The rounding mode
@@ -693,15 +693,15 @@ void xsum_small::add(xsum_flt const *v, xsum_length const n) {
   add(f);
 }
 
-void xsum_small::add(std::vector<xsum_flt> const &vec) {
-  xsum_length c = static_cast<xsum_length>(vec.size());
+void xsum_small::add(std::vector<xsum_flt> const &v) {
+  xsum_length c = static_cast<xsum_length>(v.size());
   if (c == 0) {
     return;
   }
 
   xsum_small_accumulator *sacc = _sacc.get();
 
-  xsum_flt const *vec = vec.data();
+  xsum_flt const *vec = v.data();
 
   while (c > 1) {
     if (sacc->adds_until_propagate == 0) {
@@ -755,15 +755,15 @@ void xsum_small::add_sqnorm(xsum_flt const *v, xsum_length const n) {
   add(g);
 }
 
-void xsum_small::add_sqnorm(std::vector<xsum_flt> const &vec) {
-  xsum_length c = static_cast<xsum_length>(vec.size());
+void xsum_small::add_sqnorm(std::vector<xsum_flt> const &v) {
+  xsum_length c = static_cast<xsum_length>(v.size());
   if (c == 0) {
     return;
   }
 
   xsum_small_accumulator *sacc = _sacc.get();
 
-  xsum_flt const *vec = vec.data();
+  xsum_flt const *vec = v.data();
 
   while (c > 1) {
     if (sacc->adds_until_propagate == 0) {
