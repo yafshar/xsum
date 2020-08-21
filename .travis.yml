@@ -1,0 +1,32 @@
+language: python
+
+jobs:
+  include:
+    - os: linux
+      python: 3.6
+    - os: linux
+      python: 3.7
+    - os: linux
+      python: 3.8
+    - os: osx
+      osx_image: xcode9.4
+      name: "Generic Python 3.6 on macOS"
+      language: generic
+    - os: osx
+      osx_image: xcode11.3
+      name: "Generic Python 3.7 on macOS"
+      language: generic
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then python3 --version ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then pip3 install -U pip ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then python --version ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then pip install -U pip ; fi
+
+install:
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then pip3 install . ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then pip install . ; fi
+
+script:
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then python3 -m tests ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then if [ "$TRAVIS_PYTHON_VERSION" != "3.8" ]; then python -m tests ; fi ; fi
