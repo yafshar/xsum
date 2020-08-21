@@ -1,5 +1,6 @@
 # Fast Exact Summation Using Small and Large Superaccumulators (XSUM)
 
+
 [XSUM](#neal_2015) is a library for performing exact summation using
 super-accumulators. It provides methods for exactly summing a set of
 floating-point numbers, where using a simple summation and the rounding which
