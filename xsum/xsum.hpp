@@ -383,7 +383,7 @@ class xsum_small {
                                xsum_length const n);
 
  private:
-  std::unique_ptr<xsum_small_accumulator> _sacc;
+  std::shared_ptr<xsum_small_accumulator> _sacc;
 };
 
 /*!
@@ -416,7 +416,11 @@ class xsum_large {
    */
   void init();
 
-  /* ADD SINGLE NUMBER TO THE LARGE ACCUMULATOR */
+  /*!
+   * \brief Add a single value to the large superaccumulator
+   *
+   * \param value
+   */
   void add(xsum_flt const value);
   void add(xsum_small_accumulator const *const value);
   void add(xsum_large_accumulator *const value);
@@ -522,7 +526,7 @@ class xsum_large {
   void add_inf_nan(xsum_int const ivalue);
 
  private:
-  std::unique_ptr<xsum_large_accumulator> _lacc;
+  std::shared_ptr<xsum_large_accumulator> _lacc;
 };
 
 /* EXACT SUM FUNCTIONS */
@@ -582,7 +586,7 @@ void xsum_add_dot(T *const acc, std::vector<xsum_flt> const &vec1,
 template <typename T>
 xsum_flt xsum_round(T *const acc);
 xsum_small_accumulator *xsum_round_to_small(xsum_large_accumulator *const lacc);
-static void pbinary_double(double const d);
+static void pbinary(double const d);
 
 // Implementation
 
@@ -668,22 +672,20 @@ void xsum_small::add(xsum_flt const *v, xsum_length const n) {
     return;
   }
 
-  xsum_small_accumulator *sacc = _sacc.get();
-
   xsum_flt const *vec = v;
   xsum_length c = n;
   while (c > 1) {
-    if (sacc->adds_until_propagate == 0) {
+    if (_sacc->adds_until_propagate == 0) {
       carry_propagate();
     }
 
     xsum_length const m =
-        c - ((1 <= sacc->adds_until_propagate) ? c - 1
-                                               : sacc->adds_until_propagate);
+        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
+                                               : _sacc->adds_until_propagate);
 
     add_no_carry(vec, m + 1);
 
-    sacc->adds_until_propagate -= m;
+    _sacc->adds_until_propagate -= m;
 
     vec += m;
     c -= m;
@@ -699,22 +701,20 @@ void xsum_small::add(std::vector<xsum_flt> const &v) {
     return;
   }
 
-  xsum_small_accumulator *sacc = _sacc.get();
-
   xsum_flt const *vec = v.data();
 
   while (c > 1) {
-    if (sacc->adds_until_propagate == 0) {
+    if (_sacc->adds_until_propagate == 0) {
       carry_propagate();
     }
 
     xsum_length const m =
-        c - ((1 <= sacc->adds_until_propagate) ? c - 1
-                                               : sacc->adds_until_propagate);
+        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
+                                               : _sacc->adds_until_propagate);
 
     add_no_carry(vec, m + 1);
 
-    sacc->adds_until_propagate -= m;
+    _sacc->adds_until_propagate -= m;
 
     vec += m;
     c -= m;
@@ -729,22 +729,21 @@ void xsum_small::add_sqnorm(xsum_flt const *v, xsum_length const n) {
     return;
   }
 
-  xsum_small_accumulator *sacc = _sacc.get();
-
   xsum_flt const *vec = v;
+
   xsum_length c = n;
   while (c > 1) {
-    if (sacc->adds_until_propagate == 0) {
+    if (_sacc->adds_until_propagate == 0) {
       carry_propagate();
     }
 
     xsum_length const m =
-        c - ((1 <= sacc->adds_until_propagate) ? c - 1
-                                               : sacc->adds_until_propagate);
+        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
+                                               : _sacc->adds_until_propagate);
 
     add_sqnorm_no_carry(vec, m + 1);
 
-    sacc->adds_until_propagate -= m;
+    _sacc->adds_until_propagate -= m;
 
     vec += m;
     c -= m;
@@ -761,22 +760,20 @@ void xsum_small::add_sqnorm(std::vector<xsum_flt> const &v) {
     return;
   }
 
-  xsum_small_accumulator *sacc = _sacc.get();
-
   xsum_flt const *vec = v.data();
 
   while (c > 1) {
-    if (sacc->adds_until_propagate == 0) {
+    if (_sacc->adds_until_propagate == 0) {
       carry_propagate();
     }
 
     xsum_length const m =
-        c - ((1 <= sacc->adds_until_propagate) ? c - 1
-                                               : sacc->adds_until_propagate);
+        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
+                                               : _sacc->adds_until_propagate);
 
     add_sqnorm_no_carry(vec, m + 1);
 
-    sacc->adds_until_propagate -= m;
+    _sacc->adds_until_propagate -= m;
 
     vec += m;
     c -= m;
@@ -793,26 +790,25 @@ void xsum_small::add_dot(xsum_flt const *v1, xsum_flt const *v2,
     return;
   }
 
-  xsum_small_accumulator *sacc = _sacc.get();
-
   xsum_flt const *vec1 = v1;
   xsum_flt const *vec2 = v2;
+
   xsum_length c = n;
   while (c > 1) {
-    if (sacc->adds_until_propagate == 0) {
+    if (_sacc->adds_until_propagate == 0) {
       carry_propagate();
     }
 
     xsum_length const m =
-        c - ((1 <= sacc->adds_until_propagate) ? c - 1
-                                               : sacc->adds_until_propagate);
+        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
+                                               : _sacc->adds_until_propagate);
 
     add_dot_no_carry(vec1, vec2, m + 1);
 
     vec1 += m;
     vec2 += m;
 
-    sacc->adds_until_propagate -= m;
+    _sacc->adds_until_propagate -= m;
 
     c -= m;
   }
@@ -830,26 +826,24 @@ void xsum_small::add_dot(std::vector<xsum_flt> const &v1,
     return;
   }
 
-  xsum_small_accumulator *sacc = _sacc.get();
-
   xsum_flt const *vec1 = v1.data();
   xsum_flt const *vec2 = v2.data();
 
   while (c > 1) {
-    if (sacc->adds_until_propagate == 0) {
+    if (_sacc->adds_until_propagate == 0) {
       carry_propagate();
     }
 
     xsum_length const m =
-        c - ((1 <= sacc->adds_until_propagate) ? c - 1
-                                               : sacc->adds_until_propagate);
+        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
+                                               : _sacc->adds_until_propagate);
 
     add_dot_no_carry(vec1, vec2, m + 1);
 
     vec1 += m;
     vec2 += m;
 
-    sacc->adds_until_propagate -= m;
+    _sacc->adds_until_propagate -= m;
 
     c -= m;
   }
@@ -1195,8 +1189,7 @@ done_rounding:;
     if (xsum_debug) {
       std::cout << "Final rounded result: " << std::scientific
                 << std::setprecision(17) << u.fltv << " (overflowed)\n  ";
-      pbinary_double(u.fltv);
-      std::cout << "\n";
+      pbinary(u.fltv);
     }
 
     return u.fltv;
@@ -1214,21 +1207,18 @@ done_rounding:;
     }
     std::cout << "Final rounded result: " << std::scientific
               << std::setprecision(17) << u.fltv << "\n  ";
-    pbinary_double(u.fltv);
-    std::cout << "\n";
+    pbinary(u.fltv);
   }
 
   return u.fltv;
 }
 
 void xsum_small::display() {
-  xsum_small_accumulator *sacc = _sacc.get();
-
-  std::cout << "Small accumulator:" << (sacc->Inf ? "  Inf" : "")
-            << (sacc->NaN ? "  NaN" : "") << "\n";
+  std::cout << "Small accumulator:" << (_sacc->Inf ? "  Inf" : "")
+            << (_sacc->NaN ? "  NaN" : "") << "\n";
 
   for (int i = XSUM_SCHUNKS - 1, dots = 0; i >= 0; --i) {
-    if (sacc->chunk[i] == 0) {
+    if (_sacc->chunk[i] == 0) {
       if (!dots) {
         dots = 1;
         std::cout << "            ...\n";
@@ -1239,10 +1229,10 @@ void xsum_small::display() {
                                     XSUM_MANTISSA_BITS)
                 << " "
                 << std::bitset<XSUM_SCHUNK_BITS - 32>(
-                       static_cast<std::int64_t>(sacc->chunk[i] >> 32))
+                       static_cast<std::int64_t>(_sacc->chunk[i] >> 32))
                 << " "
                 << std::bitset<32>(
-                       static_cast<std::int64_t>(sacc->chunk[i] & 0xffffffff))
+                       static_cast<std::int64_t>(_sacc->chunk[i] & 0xffffffff))
                 << "\n";
       dots = 0;
     }
@@ -1251,10 +1241,9 @@ void xsum_small::display() {
 }
 
 int xsum_small::chunks_used() {
-  xsum_small_accumulator *sacc = _sacc.get();
   int c = 0;
   for (int i = 0; i < XSUM_SCHUNKS; ++i) {
-    if (sacc->chunk[i] != 0) {
+    if (_sacc->chunk[i] != 0) {
       ++c;
     }
   }
@@ -1502,8 +1491,7 @@ inline void xsum_small::add_no_carry(xsum_flt const value) {
   if (xsum_debug) {
     std::cout << "ADD +" << std::setprecision(17) << static_cast<double>(value)
               << "\n     ";
-    pbinary_double(static_cast<double>(value));
-    std::cout << "\n";
+    pbinary(static_cast<double>(value));
   }
 
   fpunion u;
@@ -3383,8 +3371,7 @@ done_rounding:;
     if (xsum_debug) {
       std::cout << "Final rounded result: " << std::scientific
                 << std::setprecision(17) << u.fltv << " (overflowed)\n  ";
-      pbinary_double(u.fltv);
-      std::cout << "\n";
+      pbinary(u.fltv);
     }
     return u.fltv;
   }
@@ -3401,8 +3388,7 @@ done_rounding:;
     }
     std::cout << "Final rounded result: " << std::scientific
               << std::setprecision(17) << u.fltv << "\n  ";
-    pbinary_double(u.fltv);
-    std::cout << "\n";
+    pbinary(u.fltv);
   }
 
   return u.fltv;
@@ -5308,7 +5294,7 @@ inline void xsum_large_add_value_inf_nan(xsum_large_accumulator *const lacc,
 }
 
 /* PRINT DOUBLE-PRECISION FLOATING POINT VALUE IN BINARY. */
-void pbinary_double(double const d) {
+void pbinary(double const d) {
   union {
     double f;
     std::int64_t i;
@@ -5327,7 +5313,7 @@ void pbinary_double(double const d) {
     std::cout << " (+" << std::setfill('0') << std::setw(6)
               << static_cast<int>(exp - 1023) << ") ";
   }
-  std::cout << std::bitset<52>(u.i & 0xfffffffffffffL);
+  std::cout << std::bitset<52>(u.i & 0xfffffffffffffL) << "\n";
 }
 
 #endif  // XSUM_HPP
