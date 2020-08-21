@@ -452,6 +452,30 @@ int main(int argc, char **argv) {
   for (int i = 0; i < two_term_size; i += 2) {
     double const s = two_term[i] + two_term[i + 1];
 
+    xsum_large_accumulator lacc;
+    xsum_large_accumulator lacc2;
+
+    xsum_add(&lacc, *(two_term + i));
+    xsum_add(&lacc2, *(two_term + i + 1));
+    xsum_add(&lacc, &lacc2);
+    result(&lacc, s, i / 2);
+  }
+
+  for (int i = 0; i < two_term_size; i += 2) {
+    double const s = two_term[i] + two_term[i + 1];
+
+    xsum_large_accumulator lacc;
+    xsum_small_accumulator sacc;
+
+    xsum_add(&lacc, *(two_term + i));
+    xsum_add(&sacc, *(two_term + i + 1));
+    xsum_add(&lacc, &sacc);
+    result(&lacc, s, i / 2);
+  }
+
+  for (int i = 0; i < two_term_size; i += 2) {
+    double const s = two_term[i] + two_term[i + 1];
+
     xsum_small sacc;
     sacc.add(two_term + i, 2);
     result(sacc.get(), s, i / 2);
