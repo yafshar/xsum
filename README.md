@@ -1,5 +1,8 @@
 # Fast Exact Summation Using Small and Large Superaccumulators (XSUM)
 
+[![Build Status](https://travis-ci.com/yafshar/xsum.svg?token=aY1dW9PfH9SMySdB6Pzy&branch=master)](https://travis-ci.com/yafshar/xsum)
+[![Python package](https://github.com/yafshar/xsum/workflows/Python%20package/badge.svg)](https://github.com/yafshar/xsum/actions)
+[![License](https://img.shields.io/badge/license-LGPL--v2-blue)](LICENSE)
 
 [XSUM](#neal_2015) is a library for performing exact summation using
 super-accumulators. It provides methods for exactly summing a set of
