@@ -107,7 +107,7 @@ setup(
         'Operating System :: OS Independent',
         'License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)'
     ],
-    setup_requires=['pybind11>=2.5.0'],
+    setup_requires=['pybind11>=2.5.0', 'numpy'],
     keywords=['xsum'],
     packages=find_packages(),
     install_requires=[],
