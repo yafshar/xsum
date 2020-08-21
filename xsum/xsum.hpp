@@ -424,6 +424,7 @@ class xsum_large {
   void add(xsum_flt const value);
   void add(xsum_small_accumulator const *const value);
   void add(xsum_large_accumulator *const value);
+  void add(xsum_large &value);
 
   /*
    * ADD A VECTOR OF FLOATING-POINT NUMBERS TO A LARGE ACCUMULATOR.
@@ -450,8 +451,12 @@ class xsum_large {
    */
   xsum_flt round();
 
-  xsum_small_accumulator *round_to_small();
-  xsum_small_accumulator *round_to_small(xsum_large_accumulator *const lacc);
+  xsum_small_accumulator round_to_small();
+  xsum_small_accumulator round_to_small(xsum_large_accumulator *const lacc);
+
+  xsum_small_accumulator *round_to_small_ptr();
+  xsum_small_accumulator *round_to_small_ptr(
+      xsum_large_accumulator *const lacc);
 
   /* Display a large accumulator. */
   void display();
@@ -585,7 +590,12 @@ void xsum_add_dot(T *const acc, std::vector<xsum_flt> const &vec1,
                   std::vector<xsum_flt> const &vec2);
 template <typename T>
 xsum_flt xsum_round(T *const acc);
-xsum_small_accumulator *xsum_round_to_small(xsum_large_accumulator *const lacc);
+
+static xsum_small_accumulator *xsum_round_to_small_ptr(
+    xsum_large_accumulator *const lacc);
+
+xsum_small_accumulator xsum_round_to_small(xsum_large_accumulator *const lacc);
+
 static void pbinary(double const d);
 
 // Implementation
@@ -681,7 +691,7 @@ void xsum_small::add(xsum_flt const *v, xsum_length const n) {
 
     xsum_length const m =
         c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                               : _sacc->adds_until_propagate);
+                                                : _sacc->adds_until_propagate);
 
     add_no_carry(vec, m + 1);
 
@@ -710,7 +720,7 @@ void xsum_small::add(std::vector<xsum_flt> const &v) {
 
     xsum_length const m =
         c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                               : _sacc->adds_until_propagate);
+                                                : _sacc->adds_until_propagate);
 
     add_no_carry(vec, m + 1);
 
@@ -739,7 +749,7 @@ void xsum_small::add_sqnorm(xsum_flt const *v, xsum_length const n) {
 
     xsum_length const m =
         c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                               : _sacc->adds_until_propagate);
+                                                : _sacc->adds_until_propagate);
 
     add_sqnorm_no_carry(vec, m + 1);
 
@@ -769,7 +779,7 @@ void xsum_small::add_sqnorm(std::vector<xsum_flt> const &v) {
 
     xsum_length const m =
         c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                               : _sacc->adds_until_propagate);
+                                                : _sacc->adds_until_propagate);
 
     add_sqnorm_no_carry(vec, m + 1);
 
@@ -801,7 +811,7 @@ void xsum_small::add_dot(xsum_flt const *v1, xsum_flt const *v2,
 
     xsum_length const m =
         c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                               : _sacc->adds_until_propagate);
+                                                : _sacc->adds_until_propagate);
 
     add_dot_no_carry(vec1, vec2, m + 1);
 
@@ -836,7 +846,7 @@ void xsum_small::add_dot(std::vector<xsum_flt> const &v1,
 
     xsum_length const m =
         c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                               : _sacc->adds_until_propagate);
+                                                : _sacc->adds_until_propagate);
 
     add_dot_no_carry(vec1, vec2, m + 1);
 
@@ -1745,7 +1755,12 @@ void xsum_large::add(xsum_small_accumulator const *const value) {
 }
 
 void xsum_large::add(xsum_large_accumulator *const value) {
-  xsum_small_accumulator *sacc = round_to_small(value);
+  xsum_small_accumulator *sacc = round_to_small_ptr(value);
+  add(sacc);
+}
+
+void xsum_large::add(xsum_large &value) {
+  xsum_small_accumulator *sacc = value.round_to_small_ptr();
   add(sacc);
 }
 
@@ -2524,7 +2539,272 @@ xsum_flt xsum_large::round() {
   return sround();
 }
 
-xsum_small_accumulator *xsum_large::round_to_small() {
+xsum_small_accumulator xsum_large::round_to_small() {
+  xsum_used const *p = _lacc->chunks_used;
+  xsum_used const *e = p + XSUM_LCHUNKS / 64;
+
+  /* Very quickly skip some unused low-order blocks of chunks
+     by looking at the used_used flags. */
+  xsum_used uu = _lacc->used_used;
+
+  if ((uu & 0xffffffff) == 0) {
+    uu >>= 32;
+    p += 32;
+  }
+  if ((uu & 0xffff) == 0) {
+    uu >>= 16;
+    p += 16;
+  }
+  if ((uu & 0xff) == 0) {
+    p += 8;
+  }
+
+  xsum_small_accumulator sacc;
+
+  /* Loop over remaining blocks of chunks. */
+  xsum_used u;
+  int ix;
+  do {
+    /* Loop to quickly find the next non-zero block of used flags, or finish
+       up if we've added all the used blocks to the small accumulator. */
+
+    for (;;) {
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(_lacc->sacc.chunk, _lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = _lacc->sacc.Inf;
+        sacc.NaN = _lacc->sacc.NaN;
+        sacc.adds_until_propagate = _lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(_lacc->sacc.chunk, _lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = _lacc->sacc.Inf;
+        sacc.NaN = _lacc->sacc.NaN;
+        sacc.adds_until_propagate = _lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(_lacc->sacc.chunk, _lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = _lacc->sacc.Inf;
+        sacc.NaN = _lacc->sacc.NaN;
+        sacc.adds_until_propagate = _lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(_lacc->sacc.chunk, _lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = _lacc->sacc.Inf;
+        sacc.NaN = _lacc->sacc.NaN;
+        sacc.adds_until_propagate = _lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+    }
+
+    /* Find and process the chunks in this block that are used.  We skip
+       forward based on the chunks_used flags until we're within eight
+       bits of a chunk that is in use. */
+
+    ix = (p - _lacc->chunks_used) << 6;
+    if ((u & 0xffffffff) == 0) {
+      u >>= 32;
+      ix += 32;
+    }
+
+    if ((u & 0xffff) == 0) {
+      u >>= 16;
+      ix += 16;
+    }
+
+    if ((u & 0xff) == 0) {
+      u >>= 8;
+      ix += 8;
+    }
+
+    do {
+      if (_lacc->count[ix] >= 0) {
+        add_lchunk_to_small(ix);
+      }
+
+      ++ix;
+      u >>= 1;
+    } while (u != 0);
+
+    ++p;
+  } while (p != e);
+
+  /* Finish now that all blocks have been added to the small accumulator
+     by calling the small accumulator rounding function. */
+  std::copy(_lacc->sacc.chunk, _lacc->sacc.chunk + XSUM_SCHUNKS, sacc.chunk);
+  sacc.Inf = _lacc->sacc.Inf;
+  sacc.NaN = _lacc->sacc.NaN;
+  sacc.adds_until_propagate = _lacc->sacc.adds_until_propagate;
+  return std::move(sacc);
+}
+
+xsum_small_accumulator xsum_large::round_to_small(
+    xsum_large_accumulator *const lacc) {
+  xsum_used const *p = lacc->chunks_used;
+  xsum_used const *e = p + XSUM_LCHUNKS / 64;
+
+  /* Very quickly skip some unused low-order blocks of chunks
+     by looking at the used_used flags. */
+  xsum_used uu = lacc->used_used;
+
+  if ((uu & 0xffffffff) == 0) {
+    uu >>= 32;
+    p += 32;
+  }
+  if ((uu & 0xffff) == 0) {
+    uu >>= 16;
+    p += 16;
+  }
+  if ((uu & 0xff) == 0) {
+    p += 8;
+  }
+
+  xsum_small_accumulator sacc;
+
+  /* Loop over remaining blocks of chunks. */
+  xsum_used u;
+  int ix;
+  do {
+    /* Loop to quickly find the next non-zero block of used flags, or finish
+       up if we've added all the used blocks to the small accumulator. */
+
+    for (;;) {
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = lacc->sacc.Inf;
+        sacc.NaN = lacc->sacc.NaN;
+        sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = lacc->sacc.Inf;
+        sacc.NaN = lacc->sacc.NaN;
+        sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = lacc->sacc.Inf;
+        sacc.NaN = lacc->sacc.NaN;
+        sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = lacc->sacc.Inf;
+        sacc.NaN = lacc->sacc.NaN;
+        sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+    }
+
+    /* Find and process the chunks in this block that are used.  We skip
+       forward based on the chunks_used flags until we're within eight
+       bits of a chunk that is in use. */
+
+    ix = (p - lacc->chunks_used) << 6;
+    if ((u & 0xffffffff) == 0) {
+      u >>= 32;
+      ix += 32;
+    }
+
+    if ((u & 0xffff) == 0) {
+      u >>= 16;
+      ix += 16;
+    }
+
+    if ((u & 0xff) == 0) {
+      u >>= 8;
+      ix += 8;
+    }
+
+    do {
+      if (lacc->count[ix] >= 0) {
+        add_lchunk_to_small(ix);
+      }
+
+      ++ix;
+      u >>= 1;
+    } while (u != 0);
+
+    ++p;
+  } while (p != e);
+
+  /* Finish now that all blocks have been added to the small accumulator
+     by calling the small accumulator rounding function. */
+  std::copy(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS, sacc.chunk);
+  sacc.Inf = lacc->sacc.Inf;
+  sacc.NaN = lacc->sacc.NaN;
+  sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
+  return std::move(sacc);
+}
+
+xsum_small_accumulator *xsum_large::round_to_small_ptr() {
   xsum_used const *p = _lacc->chunks_used;
   xsum_used const *e = p + XSUM_LCHUNKS / 64;
 
@@ -2630,7 +2910,7 @@ xsum_small_accumulator *xsum_large::round_to_small() {
   return &_lacc->sacc;
 }
 
-xsum_small_accumulator *xsum_large::round_to_small(
+xsum_small_accumulator *xsum_large::round_to_small_ptr(
     xsum_large_accumulator *const lacc) {
   xsum_used const *p = lacc->chunks_used;
   xsum_used const *e = p + XSUM_LCHUNKS / 64;
@@ -4226,7 +4506,7 @@ void xsum_add(xsum_large_accumulator *const lacc,
 
 void xsum_add(xsum_large_accumulator *const lacc,
               xsum_large_accumulator *const value) {
-  xsum_small_accumulator *sacc = xsum_round_to_small(value);
+  xsum_small_accumulator *sacc = xsum_round_to_small_ptr(value);
   xsum_add(lacc, sacc);
 }
 
@@ -5073,7 +5353,7 @@ done_rounding:;
   return u.fltv;
 }
 
-xsum_small_accumulator *xsum_round_to_small(
+xsum_small_accumulator *xsum_round_to_small_ptr(
     xsum_large_accumulator *const lacc) {
   xsum_used *p = lacc->chunks_used;
   xsum_used *e = p + XSUM_LCHUNKS / 64;
@@ -5181,10 +5461,142 @@ xsum_small_accumulator *xsum_round_to_small(
   return &lacc->sacc;
 }
 
+xsum_small_accumulator xsum_round_to_small(xsum_large_accumulator *const lacc) {
+  xsum_used *p = lacc->chunks_used;
+  xsum_used *e = p + XSUM_LCHUNKS / 64;
+
+  /* Very quickly skip some unused low-order blocks of chunks by looking
+     at the used_used flags. */
+
+  xsum_used uu = lacc->used_used;
+
+  if ((uu & 0xffffffff) == 0) {
+    uu >>= 32;
+    p += 32;
+  }
+  if ((uu & 0xffff) == 0) {
+    uu >>= 16;
+    p += 16;
+  }
+  if ((uu & 0xff) == 0) {
+    p += 8;
+  }
+
+  xsum_small_accumulator sacc;
+
+  xsum_used u;
+
+  /* Loop over remaining blocks of chunks. */
+  do {
+    /* Loop to quickly find the next non-zero block of used flags, or finish
+       up if we've added all the used blocks to the small accumulator. */
+
+    for (;;) {
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = lacc->sacc.Inf;
+        sacc.NaN = lacc->sacc.NaN;
+        sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = lacc->sacc.Inf;
+        sacc.NaN = lacc->sacc.NaN;
+        sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = lacc->sacc.Inf;
+        sacc.NaN = lacc->sacc.NaN;
+        sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+
+      u = *p;
+      if (u != 0) {
+        break;
+      }
+
+      ++p;
+      if (p == e) {
+        std::copy(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS,
+                  sacc.chunk);
+        sacc.Inf = lacc->sacc.Inf;
+        sacc.NaN = lacc->sacc.NaN;
+        sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
+        return std::move(sacc);
+      }
+    }
+
+    /* Find and process the chunks in this block that are used.  We skip
+       forward based on the chunks_used flags until we're within eight
+        bits of a chunk that is in use. */
+
+    int ix = (p - lacc->chunks_used) << 6;
+
+    if ((u & 0xffffffff) == 0) {
+      u >>= 32;
+      ix += 32;
+    }
+    if ((u & 0xffff) == 0) {
+      u >>= 16;
+      ix += 16;
+    }
+    if ((u & 0xff) == 0) {
+      u >>= 8;
+      ix += 8;
+    }
+
+    do {
+      if (lacc->count[ix] >= 0) {
+        xsum_add_lchunk_to_small(lacc, ix);
+      }
+      ++ix;
+      u >>= 1;
+    } while (u != 0);
+
+    ++p;
+
+  } while (p != e);
+
+  /* Finish now that all blocks have been added to the small accumulator
+     by calling the small accumulator rounding function. */
+  std::copy(lacc->sacc.chunk, lacc->sacc.chunk + XSUM_SCHUNKS, sacc.chunk);
+  sacc.Inf = lacc->sacc.Inf;
+  sacc.NaN = lacc->sacc.NaN;
+  sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
+  return std::move(sacc);
+}
+
 template <>
 xsum_flt xsum_round<xsum_large_accumulator>(
     xsum_large_accumulator *const lacc) {
-  return xsum_round<xsum_small_accumulator>(xsum_round_to_small(lacc));
+  return xsum_round<xsum_small_accumulator>(xsum_round_to_small_ptr(lacc));
 }
 
 inline void xsum_add_lchunk_to_small(xsum_large_accumulator *const lacc,
