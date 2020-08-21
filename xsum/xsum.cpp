@@ -82,10 +82,6 @@ class py_xsum_small : public xsum_small {
   /* Inherit the constructors */
   using xsum_small::xsum_small;
 
-  inline xsum_small_accumulator *get() const noexcept {
-    PYBIND11_OVERLOAD(xsum_small_accumulator *, xsum_small, get);
-  }
-
   void add(pybind11::array_t<xsum_flt> const &py_vec) {
     pybind11::buffer_info buf = py_vec.request();
     if (buf.ndim != 1) {
@@ -127,10 +123,6 @@ class py_xsum_large : public xsum_large {
  public:
   /* Inherit the constructors */
   using xsum_large::xsum_large;
-
-  inline xsum_large_accumulator *get() const noexcept {
-    PYBIND11_OVERLOAD(xsum_large_accumulator *, xsum_large, get);
-  }
 
   void add(pybind11::array_t<xsum_flt> const &py_vec) {
     pybind11::buffer_info buf = py_vec.request();
@@ -185,6 +177,7 @@ PYBIND11_MODULE(xsum, m) {
         "Initilize the xsum_small_accumulator object");
   m.def("xsum_init", &xsum_init<xsum_large_accumulator>,
         "Initilize the xsum_large_accumulator object");
+
   m.def("xsum_add",
         (void (*)(xsum_small_accumulator *const, xsum_flt const)) &
             xsum_add<xsum_small_accumulator>,
@@ -193,6 +186,7 @@ PYBIND11_MODULE(xsum, m) {
         (void (*)(xsum_large_accumulator *const, xsum_flt const)) &
             xsum_add<xsum_large_accumulator>,
         "Add a value to the superaccumulator.");
+
   m.def("xsum_add",
         (void (*)(xsum_small_accumulator *const,
                   pybind11::array_t<xsum_flt> const &)) &
@@ -203,6 +197,7 @@ PYBIND11_MODULE(xsum, m) {
                   pybind11::array_t<xsum_flt> const &)) &
             py_xsum_add<xsum_large_accumulator>,
         "Add a vector of values to the superaccumulator.");
+
   m.def("xsum_add",
         (void (*)(xsum_small_accumulator *const,
                   xsum_small_accumulator const *const)) &
@@ -218,18 +213,26 @@ PYBIND11_MODULE(xsum, m) {
                   xsum_small_accumulator const *const)) &
             xsum_add,
         "Add a small accumulator to the large superaccumulator.");
+
   m.def("xsum_add_sqnorm", &py_xsum_add_sqnorm<xsum_small_accumulator>,
         "Add a squared norm of vector of values to the superaccumulator.");
   m.def("xsum_add_sqnorm", &py_xsum_add_sqnorm<xsum_large_accumulator>,
         "Add a squared norm of vector of values to the superaccumulator.");
+
   m.def("xsum_add_dot", &py_xsum_add_dot<xsum_small_accumulator>,
         "Add dot product of two vectors of values to the superaccumulator.");
   m.def("xsum_add_dot", &py_xsum_add_dot<xsum_large_accumulator>,
         "Add dot product of two vectors of values to the superaccumulator.");
+
   m.def("xsum_round", &xsum_round<xsum_small_accumulator>,
         "Return the results of rounding the superaccumulator.");
   m.def("xsum_round", &xsum_round<xsum_large_accumulator>,
         "Return the results of rounding the superaccumulator.");
+
+  m.def("xsum_round_to_small", &xsum_round_to_small,
+        "Return the results of rounding a large superaccumulator to a small "
+        "superaccumulator.");
+
   m.def("pbinary", &pbinary,
         "Print double precision floating point value in binary.");
 
@@ -270,9 +273,7 @@ PYBIND11_MODULE(xsum, m) {
       .def("round", &py_xsum_small::xsum_small::round,
            "Return the results of rounding the superaccumulator.")
       .def("chunks_used", &py_xsum_small::xsum_small::chunks_used,
-           "Return number of chunks in use in the superaccumulator.")
-      .def("get", &py_xsum_small::get,
-           "Returns a pointer to the xsum_small_accumulator object");
+           "Return number of chunks in use in the superaccumulator.");
 
   pybind11::class_<py_xsum_large>(m, "xsum_large")
       .def(pybind11::init<>())
@@ -301,6 +302,10 @@ PYBIND11_MODULE(xsum, m) {
               py_xsum_large::xsum_large::add,
           "Add a large accumulator to the superaccumulator.")
       .def("add",
+           (void (py_xsum_large::xsum_large::*)(xsum_large &)) &
+               py_xsum_large::xsum_large::add,
+           "Add a large accumulator object to the superaccumulator.")
+      .def("add",
            (void (py_xsum_large::*)(pybind11::array_t<xsum_flt> const &)) &
                py_xsum_large::add,
            "Add a vector of values to the superaccumulator.")
@@ -311,14 +316,12 @@ PYBIND11_MODULE(xsum, m) {
       .def("round", &py_xsum_large::xsum_large::round,
            "Return the results of rounding the superaccumulator.")
       .def("round_to_small",
-           (xsum_small_accumulator * (py_xsum_large::xsum_large::*)()) &
+           (xsum_small_accumulator (py_xsum_large::xsum_large::*)()) &
                py_xsum_large::xsum_large::round_to_small)
       .def("round_to_small",
-           (xsum_small_accumulator *
+           (xsum_small_accumulator
             (py_xsum_large::xsum_large::*)(xsum_large_accumulator *const)) &
                py_xsum_large::xsum_large::round_to_small)
       .def("chunks_used", &py_xsum_large::xsum_large::chunks_used,
-           "Return number of chunks in use in the superaccumulator.")
-      .def("get", &py_xsum_large::get,
-           "Returns a pointer to the xsum_large_accumulator object");
+           "Return number of chunks in use in the superaccumulator.");
 }
