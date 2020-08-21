@@ -1,3 +1,13 @@
+#
+# Copyright (c) 2020, Regents of the University of Minnesota.
+# All rights reserved.
+#
+# Contributors:
+#    Yaser Afshar
+#
+
+# CORRECTNESS CHECKS FOR EXACT SUMMATION.
+
 import numpy as np
 
 try:

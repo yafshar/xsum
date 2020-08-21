@@ -22,7 +22,7 @@
 // LGPL Version 2.1 HEADER END
 //
 
-// This file contains the Python bindings using pybind11
+// This file contains the XSUM Python bindings using pybind11
 
 //
 // Copyright (c) 2020, Regents of the University of Minnesota.
