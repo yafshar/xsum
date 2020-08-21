@@ -166,7 +166,7 @@ The large superaccumulator can be rounded to a small one as,
 ```cpp
 xsum_large_accumulator lacc;
 
-xsum_small_accumulator *sacc = xsum_round_to_small(&lacc);
+xsum_small_accumulator sacc = xsum_round_to_small(&lacc);
 ```
 
 ### Example
