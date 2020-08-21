@@ -82,6 +82,10 @@ class py_xsum_small : public xsum_small {
   /* Inherit the constructors */
   using xsum_small::xsum_small;
 
+  inline xsum_small_accumulator *get() const noexcept {
+    PYBIND11_OVERLOAD(xsum_small_accumulator *, xsum_small, get);
+  }
+
   void add(pybind11::array_t<xsum_flt> const &py_vec) {
     pybind11::buffer_info buf = py_vec.request();
     if (buf.ndim != 1) {
@@ -123,6 +127,10 @@ class py_xsum_large : public xsum_large {
  public:
   /* Inherit the constructors */
   using xsum_large::xsum_large;
+
+  inline xsum_large_accumulator *get() const noexcept {
+    PYBIND11_OVERLOAD(xsum_large_accumulator *, xsum_large, get);
+  }
 
   void add(pybind11::array_t<xsum_flt> const &py_vec) {
     pybind11::buffer_info buf = py_vec.request();
@@ -222,6 +230,8 @@ PYBIND11_MODULE(xsum, m) {
         "Return the results of rounding the superaccumulator.");
   m.def("xsum_round", &xsum_round<xsum_large_accumulator>,
         "Return the results of rounding the superaccumulator.");
+  m.def("pbinary", &pbinary,
+        "Print double precision floating point value in binary.");
 
   pybind11::class_<py_xsum_small>(m, "xsum_small")
       .def(pybind11::init<>())
@@ -261,7 +271,7 @@ PYBIND11_MODULE(xsum, m) {
            "Return the results of rounding the superaccumulator.")
       .def("chunks_used", &py_xsum_small::xsum_small::chunks_used,
            "Return number of chunks in use in the superaccumulator.")
-      .def("get", &py_xsum_small::xsum_small::get,
+      .def("get", &py_xsum_small::get,
            "Returns a pointer to the xsum_small_accumulator object");
 
   pybind11::class_<py_xsum_large>(m, "xsum_large")
@@ -309,6 +319,6 @@ PYBIND11_MODULE(xsum, m) {
                py_xsum_large::xsum_large::round_to_small)
       .def("chunks_used", &py_xsum_large::xsum_large::chunks_used,
            "Return number of chunks in use in the superaccumulator.")
-      .def("get", &py_xsum_large::xsum_large::get,
+      .def("get", &py_xsum_large::get,
            "Returns a pointer to the xsum_large_accumulator object");
 }
