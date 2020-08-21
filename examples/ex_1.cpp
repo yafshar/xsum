@@ -576,8 +576,8 @@ int main(int argc, char **argv) {
       xsum_add(&lacc, ten_term + i, 10);
     }
 
-    auto sacc = xsum_round_to_small(&lacc);
-    result(sacc, s, i / 11);
+    xsum_small_accumulator sacc = xsum_round_to_small(&lacc);
+    result(&sacc, s, i / 11);
   }
 
   for (int i = 0; i < ten_term_size; i += 11) {

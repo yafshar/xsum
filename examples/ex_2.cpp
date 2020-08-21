@@ -185,10 +185,10 @@ int main() {
       }
     }
 
-    auto ssacc = xsum_round_to_small(&lacc);
+    xsum_small_accumulator ssacc = xsum_round_to_small(&lacc);
     xsum_small_accumulator sacc;
 
-    MPI_Allreduce(ssacc, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&ssacc, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
     result(&sacc, term4[10], world_rank, "Test 4");
   }
 
@@ -200,10 +200,10 @@ int main() {
       }
     }
 
-    auto ssacc = lacc.round_to_small();
+    xsum_small_accumulator ssacc = lacc.round_to_small();
     xsum_small_accumulator sacc;
 
-    MPI_Allreduce(ssacc, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&ssacc, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
     result(&sacc, term5[10], world_rank, "Test 5");
   }
 
@@ -216,7 +216,7 @@ int main() {
       }
     }
 
-    xsum_small_accumulator sacc = *lacc.round_to_small();
+    xsum_small_accumulator sacc = lacc.round_to_small();
 
     MPI_Allreduce(MPI_IN_PLACE, &sacc, 1, acc_mpi, XSUM, MPI_COMM_WORLD);
     result(&sacc, term6[10], world_rank, "Test 6");
