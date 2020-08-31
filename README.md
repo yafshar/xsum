@@ -15,7 +15,7 @@ floating-point numbers, where using a simple summation and the rounding which
 happens after each addition could be an important factor in many applications.
 
 This library is an easy to use header-only cross-platform C++11 implementation
-and also contains Python bindings.
+and also contains Python bindings ([please see the example](###Python)).
 
 The main algorithm is taken from the original C library
 [FUNCTIONS FOR EXACT SUMMATION](https://gitlab.com/radfordneal/xsum) described
@@ -58,7 +58,8 @@ one is a function interface, which takes input and produces output, and in the
 second one, supperaccumulators are represented as classes (`xsum_small` and
 `xsum_large`.)
 
-- **C++**
+### C++
+
 `xsum_small_accumulator` and `xsum_large_accumulator`, both have a default
 constructor, thus they do not need to be initialized. Addition operation is
 simply a `xsum_add`,
@@ -472,7 +473,7 @@ mpirunt -np 4 ./simple
 Rank =  0, sum   =  0.95600000000000007194, sum 1 =  0.95599999999998419575, sum 2 =  0.95600000000000007194
 ```
 
-- **Python**
+### Python
 
 The provided Python bindings provide the *exact summation* interface in a
 Python code. You need Python 3.6 or later to run `xsum`. You can have multiple
