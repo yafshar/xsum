@@ -15,7 +15,7 @@ floating-point numbers, where using a simple summation and the rounding which
 happens after each addition could be an important factor in many applications.
 
 This library is an easy to use header-only cross-platform C++11 implementation
-and also contains Python bindings ([please see the example](###Python)).
+and also contains Python bindings ([please see the example](#Python)).
 
 The main algorithm is taken from the original C library
 [FUNCTIONS FOR EXACT SUMMATION](https://gitlab.com/radfordneal/xsum) described
