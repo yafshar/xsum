@@ -2,11 +2,13 @@
 
 [![Build Status](https://travis-ci.com/yafshar/xsum.svg?token=aY1dW9PfH9SMySdB6Pzy&branch=master)](https://travis-ci.com/yafshar/xsum)
 [![Python package](https://github.com/yafshar/xsum/workflows/Python%20package/badge.svg)](https://github.com/yafshar/xsum/actions)
+[![Windows Build status](https://ci.appveyor.com/api/projects/status/kd1sksf5t3kdsibn/branch/master?svg=true)](https://ci.appveyor.com/project/yafshar/xsum/branch/master)
+[![PyPI](https://img.shields.io/pypi/v/xsum.svg)](https://pypi.python.org/pypi/xsum)
 [![License](https://img.shields.io/badge/license-LGPL--v2-blue)](LICENSE)
 
-In applications like optimization in the near-flat surfaces or finding the
-sample mean of data, it is desirable to use higher accuracy than a simple
-summation. Where in a simple summation, rounding happens after each addition.
+In applications like optimization or finding the sample mean of data, it is
+desirable to use higher accuracy than a simple summation. Where in a simple
+summation, rounding happens after each addition.
 An exact summation is a way to achieve higher accuracy results.
 
 [XSUM](#neal_2015) is a library for performing exact summation using
