@@ -4,6 +4,11 @@
 [![Python package](https://github.com/yafshar/xsum/workflows/Python%20package/badge.svg)](https://github.com/yafshar/xsum/actions)
 [![License](https://img.shields.io/badge/license-LGPL--v2-blue)](LICENSE)
 
+In applications like optimization in the near-flat surfaces or finding the
+sample mean of data, it is desirable to use higher accuracy than a simple
+summation. Where in a simple summation, rounding happens after each addition.
+An exact summation is a way to achieve higher accuracy results.
+
 [XSUM](#neal_2015) is a library for performing exact summation using
 super-accumulators. It provides methods for exactly summing a set of
 floating-point numbers, where using a simple summation and the rounding which
@@ -18,16 +23,16 @@ in the paper
 ["Fast Exact Summation Using Small and Large Superaccumulators,"](#neal_2015) by
 [Radford M. Neal](https://www.cs.toronto.edu/~radford).
 
-The code is rewritten in C++ and amended with more functionality with the goal
+The code is rewritten in C++ and amended with more functionalities with the goal
 of ease of use. The provided Python bindings provide the *exact summation*
 interface in a Python code.
 
-The C++ code also includes extra summation functionalities, which are especially
-useful in high-performance message passing libraries (like
-[OpenMPI](https://www.open-mpi.org/) and [MPICH](https://www.mpich.org/)).
-Where binding a user-defined global summation operation to an `op` handle can
-subsequently be used in `MPI_Reduce,` `MPI_Allreduce,` `MPI_Reduce_scatter,` and
-`MPI_Scan` or a similar calls.
+The C++ code also includes extra summation functionalities, (parallel reduction
+on multi-core architectures) which are especially useful in high-performance
+message passing libraries (like [OpenMPI](https://www.open-mpi.org/) and
+[MPICH](https://www.mpich.org/)). Where binding a user-defined global summation
+operation to an `op` handle can subsequently be used in `MPI_Reduce,`
+`MPI_Allreduce,` `MPI_Reduce_scatter,` and `MPI_Scan` or a similar calls.
 
 - **NOTE:** To see or use or reproduce the results of the original
   implementation reported in the paper
@@ -37,9 +42,23 @@ subsequently be used in `MPI_Reduce,` `MPI_Allreduce,` `MPI_Reduce_scatter,` and
 
 ## Usage
 
-A small superaccumulator is the preferred method for summing a moderate number
-of terms. It is also a component of the large superaccumulator.
+**_XSUM_** library presents two objects, or super-accumulators
+`xsum_small_accumulator` and `xsum_large_accumulator`. It also provides methods
+for summing floating-point numbers and rounding to the nearest floating-point
+number.
 
+A small superaccumulator uses sixty-seven 64-bit chunks, each with 32-bit
+overlap with the next one. This accumulator is the preferred method for summing
+a moderate number of terms. A large superaccumulator uses 4096 64-bit chunks and
+is suitable for big summations. A small superaccumulator is also a component of
+the large superaccumulator [1].
+
+**_XSUM_** library provides two interfaces to use superaccumulators. The first
+one is a function interface, which takes input and produces output, and in the
+second one, supperaccumulators are represented as classes (`xsum_small` and
+`xsum_large`.)
+
+- **C++**
 `xsum_small_accumulator` and `xsum_large_accumulator`, both have a default
 constructor, thus they do not need to be initialized. Addition operation is
 simply a `xsum_add`,
@@ -60,6 +79,24 @@ xsum_add(&lacc, 1.0e-3);
 xsum_add(&lacc, 2.0e-3);
 ```
 
+or `xsum_small`, and `xsum_large` objects can simply be used as,
+
+```cpp
+// A small superaccumulator
+xsum_small sacc;
+
+// Adding values to the small accumulator sacc
+sacc.add(1.0);
+sacc.add(2.0);
+
+// Large superaccumulator
+xsum_large lacc;
+
+// Adding values to the large accumulator lacc
+lacc.add(1.0e-3);
+lacc.add(2.0e-3);
+```
+
 One can also add a vector of numbers to a superaccumulator.
 
 ```cpp
@@ -70,6 +107,26 @@ xsum_small_accumulator sacc;
 double vec[] = {1.234e88, -93.3e-23, 994.33, 1334.3, 457.34, -1.234e88, 93.3e-23, -994.33, -1334.3, -457.34};
 
 xsum_add(&sacc, vec, 10);
+
+std::vector<double> v = {1.234e88, -93.3e-23, 994.33, 1334.3, 457.34, -1.234e88, 93.3e-23, -994.33, -1334.3, -457.34};
+
+xsum_add(&sacc, v);
+```
+
+the same with `xsum_small`, and `xsum_large` objects as,
+
+```cpp
+// A small superaccumulator
+xsum_small sacc;
+
+// Adding a vector of numbers
+double vec[] = {1.234e88, -93.3e-23, 994.33, 1334.3, 457.34, -1.234e88, 93.3e-23, -994.33, -1334.3, -457.34};
+
+sacc.add(vec, 10);
+
+std::vector<double> v = {1.234e88, -93.3e-23, 994.33, 1334.3, 457.34, -1.234e88, 93.3e-23, -994.33, -1334.3, -457.34};
+
+sacc.add(v);
 ```
 
 The squared norm of a vector (sum of squares of elements) and the dot product of
@@ -90,6 +147,20 @@ double vec2[] = {1.e-3, 2., 3.};
 xsum_add_dot(&sacc, vec1, vec2, 3);
 ```
 
+with `xsum_small`, and `xsum_large` objects as,
+
+```cpp
+// A small superaccumulator
+xsum_small sacc;
+
+// Adding a vector of numbers
+double vec1[] = {1.e-2, 2., 3.};
+double vec2[] = {1.e-3, 2., 3.};
+
+// Add dot product of vectors to a small superaccumulator
+sacc.add_dot(vec1, vec2, 3);
+```
+
 When it is needed, one can simply use the `xsum_init` to reinitilize the
 superaccumulator.
 
@@ -101,6 +172,19 @@ xsum_add(&sacc, 1.0e-2);
 
 // Reinitilize the small accumulator
 xsum_init(&sacc);
+...
+```
+
+or with `xsum_small` object as,
+
+```cpp
+xsum_small sacc;
+
+sacc.add(1.0e-2);
+...
+
+// Reinitilize the small accumulator
+sacc.init();
 ...
 ```
 
@@ -116,6 +200,20 @@ double s = xsum_round(&sacc);
 ```
 
 where, `xsum_round` is used to round the superaccumulator to the nearest
+floating-point number.
+
+With `xsum_small`, and `xsum_large` objects we do as,
+
+```cpp
+xsum_small sacc;
+sacc.add(1.0e-15);
+
+....
+
+double s = sacc.round();
+```
+
+where, `round` is used to round the superaccumulator to the nearest
 floating-point number.
 
 Two **small** superaccumulators can be added together. `xsum_add` can be used to
@@ -144,6 +242,30 @@ xsum_add(&lacc2, 2.0);
 xsum_add(&lacc1, &lacc2);
 ```
 
+or as,
+
+```cpp
+// Small superaccumulators
+xsum_small sacc1;
+xsum_small sacc2;
+
+sacc1.add(1.0);
+sacc2.add(2.0);
+
+// Add a small accumulator sacc2 to the first accumulator sacc1
+sacc1.add(sacc2);
+
+// Large superaccumulators
+xsum_large lacc1;
+xsum_large lacc2;
+
+lacc1.add(1.0);
+lacc2.add(2.0);
+
+// Add a large accumulator lacc2 to the first accumulator lacc1
+lacc1.add(lacc2);
+```
+
 A **small** superaccumulator can also be added to a **large** one,
 
 ```cpp
@@ -165,12 +287,41 @@ xsum_add(&lacc, 2.0e-3);
 xsum_add(&lacc, &sacc);
 ```
 
+With `xsum_small`, and `xsum_large` objects we do as,
+
+```cpp
+// Small superaccumulator
+xsum_small sacc;
+
+sacc.add(1.0e-10);
+
+...
+
+// Large superaccumulator
+xsum_large lacc;
+
+lacc.add(2.0e-3);
+
+...
+
+// Addition of a small superaccumulator to a large one
+lacc.add(sacc);
+```
+
 The large superaccumulator can be rounded to a small one as,
 
 ```cpp
 xsum_large_accumulator lacc;
 
 xsum_small_accumulator sacc = xsum_round_to_small(&lacc);
+```
+
+or as,
+
+```cpp
+xsum_large lacc;
+
+xsum_small_accumulator sacc = lacc.round_to_small();
 ```
 
 ### Example
@@ -240,7 +391,7 @@ running the `simple` would result,
 0.072089999999998641278
 ```
 
-### MPI example (`MPI_Allreduce`)
+### MPI reduction example (`MPI_Allreduce`)
 
 To use a superaccumulator in high-performance message
 passing libraries, first we need an MPI datatype of a superaccumulator, and then
@@ -319,6 +470,99 @@ running the above code using 4 processors would result,
 mpirunt -np 4 ./simple
 
 Rank =  0, sum   =  0.95600000000000007194, sum 1 =  0.95599999999998419575, sum 2 =  0.95600000000000007194
+```
+
+- **Python**
+
+The provided Python bindings provide the *exact summation* interface in a
+Python code. You need Python 3.6 or later to run `xsum`. You can have multiple
+Python versions (2.x and 3.x) installed on the same system without problems.
+
+To install Python 3 for different Linux flavors, macOS and Windows, packages
+are available at\
+[https://www.python.org/getit/](https://www.python.org/getit/)
+
+**pip** is the most popular tool for installing Python packages, and the one
+included with modern versions of Python. `pip` currently supports cloning over
+`git`.
+
+`xsum` can be installed with `pip`:
+
+```sh
+pip install git+https://github.com/yafshar/xsum.git
+```
+
+**Note:**
+
+Depending on your Python installation, you may need to use `pip3` instead of
+`pip`, or you may have to run `pip` like this:
+
+```sh
+python3 -m pip install git+https://github.com/yafshar/xsum.git
+```
+
+```py
+from xsum import *
+import numpy as np
+
+# A small superaccumulator
+sacc = xsum_small_accumulator()
+
+# Adding values to the small accumulator sacc
+xsum_add(sacc, 1.0)
+xsum_add(sacc, 2.0)
+
+# Large superaccumulator
+lacc = xsum_large_accumulator()
+
+# Adding values to the large accumulator lacc
+xsum_add(lacc, 1.0e-3)
+xsum_add(lacc, 2.0e-3)
+```
+
+One can also add a vector of numbers to a superaccumulator.
+
+```py
+from xsum import *
+import numpy as np
+
+# A small superaccumulator
+sacc = xsum_small_accumulator()
+
+a = np.arange(0, 1, 0.1)
+
+# Adding a vector of numbers
+xsum_add(sacc, a)
+
+print("sum       = {:.20f}".format(np.sum(a)))
+print("Exact sum = {:.20f}".format(xsum_round(sacc)))
+```
+
+or a `xsum_small` or `xsum_large` objects can simply be used as,
+
+```py
+from xsum import *
+import numpy as np
+
+# A small superaccumulator
+sacc = xsum_small()
+
+a = np.arange(0, 1, 0.1)
+
+# Adding a vector of numbers
+sacc.add(a)
+
+print("sum       = {:.20f}".format(np.sum(a)))
+print("Exact sum = {:.20f}".format(sacc.round()))
+```
+
+running the `simple.py` script would result,
+
+```bash
+python ./simple.py
+
+sum       = 4.50000000000000088818
+Exact sum = 4.50000000000000000000
 ```
 
 ## References
