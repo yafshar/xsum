@@ -2581,7 +2581,7 @@ xsum_small_accumulator xsum_large::round_to_small() {
         sacc.Inf = _lacc->sacc.Inf;
         sacc.NaN = _lacc->sacc.NaN;
         sacc.adds_until_propagate = _lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
 
       u = *p;
@@ -2596,7 +2596,7 @@ xsum_small_accumulator xsum_large::round_to_small() {
         sacc.Inf = _lacc->sacc.Inf;
         sacc.NaN = _lacc->sacc.NaN;
         sacc.adds_until_propagate = _lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
 
       u = *p;
@@ -2611,7 +2611,7 @@ xsum_small_accumulator xsum_large::round_to_small() {
         sacc.Inf = _lacc->sacc.Inf;
         sacc.NaN = _lacc->sacc.NaN;
         sacc.adds_until_propagate = _lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
 
       u = *p;
@@ -2626,7 +2626,7 @@ xsum_small_accumulator xsum_large::round_to_small() {
         sacc.Inf = _lacc->sacc.Inf;
         sacc.NaN = _lacc->sacc.NaN;
         sacc.adds_until_propagate = _lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
     }
 
@@ -2668,7 +2668,7 @@ xsum_small_accumulator xsum_large::round_to_small() {
   sacc.Inf = _lacc->sacc.Inf;
   sacc.NaN = _lacc->sacc.NaN;
   sacc.adds_until_propagate = _lacc->sacc.adds_until_propagate;
-  return std::move(sacc);
+  return sacc;
 }
 
 xsum_small_accumulator xsum_large::round_to_small(
@@ -2714,7 +2714,7 @@ xsum_small_accumulator xsum_large::round_to_small(
         sacc.Inf = lacc->sacc.Inf;
         sacc.NaN = lacc->sacc.NaN;
         sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
 
       u = *p;
@@ -2729,7 +2729,7 @@ xsum_small_accumulator xsum_large::round_to_small(
         sacc.Inf = lacc->sacc.Inf;
         sacc.NaN = lacc->sacc.NaN;
         sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
 
       u = *p;
@@ -2744,7 +2744,7 @@ xsum_small_accumulator xsum_large::round_to_small(
         sacc.Inf = lacc->sacc.Inf;
         sacc.NaN = lacc->sacc.NaN;
         sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
 
       u = *p;
@@ -2759,7 +2759,7 @@ xsum_small_accumulator xsum_large::round_to_small(
         sacc.Inf = lacc->sacc.Inf;
         sacc.NaN = lacc->sacc.NaN;
         sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
     }
 
@@ -2801,7 +2801,7 @@ xsum_small_accumulator xsum_large::round_to_small(
   sacc.Inf = lacc->sacc.Inf;
   sacc.NaN = lacc->sacc.NaN;
   sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
-  return std::move(sacc);
+  return sacc;
 }
 
 xsum_small_accumulator *xsum_large::round_to_small_ptr() {
@@ -5504,7 +5504,7 @@ xsum_small_accumulator xsum_round_to_small(xsum_large_accumulator *const lacc) {
         sacc.Inf = lacc->sacc.Inf;
         sacc.NaN = lacc->sacc.NaN;
         sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
 
       u = *p;
@@ -5519,7 +5519,7 @@ xsum_small_accumulator xsum_round_to_small(xsum_large_accumulator *const lacc) {
         sacc.Inf = lacc->sacc.Inf;
         sacc.NaN = lacc->sacc.NaN;
         sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
 
       u = *p;
@@ -5534,7 +5534,7 @@ xsum_small_accumulator xsum_round_to_small(xsum_large_accumulator *const lacc) {
         sacc.Inf = lacc->sacc.Inf;
         sacc.NaN = lacc->sacc.NaN;
         sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
 
       u = *p;
@@ -5549,7 +5549,7 @@ xsum_small_accumulator xsum_round_to_small(xsum_large_accumulator *const lacc) {
         sacc.Inf = lacc->sacc.Inf;
         sacc.NaN = lacc->sacc.NaN;
         sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
-        return std::move(sacc);
+        return sacc;
       }
     }
 
@@ -5590,7 +5590,7 @@ xsum_small_accumulator xsum_round_to_small(xsum_large_accumulator *const lacc) {
   sacc.Inf = lacc->sacc.Inf;
   sacc.NaN = lacc->sacc.NaN;
   sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
-  return std::move(sacc);
+  return sacc;
 }
 
 template <>
