@@ -75,9 +75,9 @@ void result(xsum_small_accumulator *const sacc, double const s, int const rank,
     std::printf("   ANSWER: %.16le\n", s);
     std::printf("small: Result incorrect %.16le != %.16le\n", r, s);
     std::printf("    ");
-    pbinary(r);
+    print_binary(r);
     std::printf("    ");
-    pbinary(s);
+    print_binary(s);
   }
 }
 
@@ -96,9 +96,9 @@ void result(xsum_large_accumulator *const lacc, double const s, int const rank,
     std::printf("   ANSWER: %.16le\n", s);
     std::printf("large: Result incorrect %.16le != %.16le\n", r, s);
     std::printf("    ");
-    pbinary(r);
+    print_binary(r);
     std::printf("    ");
-    pbinary(s);
+    print_binary(s);
   }
 }
 

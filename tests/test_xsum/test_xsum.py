@@ -233,9 +233,9 @@ def result(acc, s, i, msg):
         print("   ANSWER: {}".format(s))
         print("   Result incorrect {} != {}".format(r, s))
         print()
-        pbinary(r)
+        print_binary(r)
         print()
-        pbinary(s)
+        print_binary(s)
         return False
 
     return True
