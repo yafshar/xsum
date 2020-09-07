@@ -661,7 +661,7 @@ template <typename accumulatorType>
 xsum_small_accumulator xsum_round_to_small(accumulatorType *const acc);
 
 template <typename T>
-static void pbinary(T const d);
+static void print_binary(T const d);
 
 // Implementation
 
@@ -930,14 +930,14 @@ void xsum_small::add_dot(std::vector<xsum_flt> const &v1,
 }
 
 template <typename T>
-void pbinary(
+void print_binary(
     typename std::enable_if<std::is_arithmetic<T>::value>::type const d) {
-  pbinary<double>(static_cast<double>(d));
+  print_binary<double>(static_cast<double>(d));
 }
 
 /* PRINT DOUBLE-PRECISION FLOATING POINT VALUE IN BINARY. */
 template <>
-void pbinary<double>(double const d) {
+void print_binary<double>(double const d) {
   union {
     double f;
     std::int64_t i;
@@ -1294,7 +1294,7 @@ done_rounding:;
     if (xsum_debug) {
       std::cout << "Final rounded result: " << std::scientific
                 << std::setprecision(17) << u.fltv << " (overflowed)\n  ";
-      pbinary<double>(u.fltv);
+      print_binary<double>(u.fltv);
     }
 
     return u.fltv;
@@ -1312,7 +1312,7 @@ done_rounding:;
     }
     std::cout << "Final rounded result: " << std::scientific
               << std::setprecision(17) << u.fltv << "\n  ";
-    pbinary<double>(u.fltv);
+    print_binary<double>(u.fltv);
   }
 
   return u.fltv;
@@ -1596,7 +1596,7 @@ inline void xsum_small::add_no_carry(xsum_flt const value) {
   if (xsum_debug) {
     std::cout << "ADD +" << std::setprecision(17) << static_cast<double>(value)
               << "\n     ";
-    pbinary<double>(static_cast<double>(value));
+    print_binary<double>(static_cast<double>(value));
   }
 
   fpunion u;
@@ -3746,7 +3746,7 @@ done_rounding:;
     if (xsum_debug) {
       std::cout << "Final rounded result: " << std::scientific
                 << std::setprecision(17) << u.fltv << " (overflowed)\n  ";
-      pbinary<double>(u.fltv);
+      print_binary<double>(u.fltv);
     }
     return u.fltv;
   }
@@ -3763,7 +3763,7 @@ done_rounding:;
     }
     std::cout << "Final rounded result: " << std::scientific
               << std::setprecision(17) << u.fltv << "\n  ";
-    pbinary<double>(u.fltv);
+    print_binary<double>(u.fltv);
   }
 
   return u.fltv;
