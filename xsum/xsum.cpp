@@ -316,11 +316,11 @@ PYBIND11_MODULE(xsum, m) {
       .def("round", &py_xsum_large::xsum_large::round,
            "Return the results of rounding the superaccumulator.")
       .def("round_to_small",
-           (xsum_small_accumulator (py_xsum_large::xsum_large::*)()) &
+           (xsum_small_accumulator(py_xsum_large::xsum_large::*)()) &
                py_xsum_large::xsum_large::round_to_small)
       .def("round_to_small",
-           (xsum_small_accumulator
-            (py_xsum_large::xsum_large::*)(xsum_large_accumulator *const)) &
+           (xsum_small_accumulator(py_xsum_large::xsum_large::*)(
+               xsum_large_accumulator *const)) &
                py_xsum_large::xsum_large::round_to_small)
       .def("chunks_used", &py_xsum_large::xsum_large::chunks_used,
            "Return number of chunks in use in the superaccumulator.");
