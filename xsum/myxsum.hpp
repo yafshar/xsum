@@ -197,7 +197,7 @@ void myXSUM<xsum_small_accumulator>(void *invec, void *inoutvec, int *len,
       static_cast<xsum_small_accumulator *>(inoutvec);
 
   for (int i = 0; i < *len; ++i, ++in, ++inout) {
-    xsum_add(inout, in);
+    xsum_add<xsum_small_accumulator>(inout, in);
   }
 }
 
@@ -209,7 +209,7 @@ void myXSUM<xsum_large_accumulator>(void *invec, void *inoutvec, int *len,
       static_cast<xsum_large_accumulator *>(inoutvec);
 
   for (int i = 0; i < *len; ++i, ++in, ++inout) {
-    xsum_add(inout, in);
+    xsum_add<xsum_large_accumulator>(inout, in);
   }
 }
 
