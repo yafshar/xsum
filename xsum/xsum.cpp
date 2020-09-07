@@ -37,19 +37,20 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
-template <typename T>
-void py_xsum_add(T *const acc, pybind11::array_t<xsum_flt> const &py_vec) {
+template <typename accumulatorType>
+void py_xsum_add(accumulatorType *const acc,
+                 pybind11::array_t<xsum_flt> const &py_vec) {
   pybind11::buffer_info buf = py_vec.request();
   if (buf.ndim != 1) {
     throw std::runtime_error("Number of dimensions must be one!");
   }
   xsum_flt *vec = static_cast<xsum_flt *>(buf.ptr);
   xsum_length const n = static_cast<xsum_length>(buf.size);
-  xsum_add<T>(acc, vec, n);
+  xsum_add<accumulatorType>(acc, vec, n);
 }
 
-template <typename T>
-void py_xsum_add_sqnorm(T *const acc,
+template <typename accumulatorType>
+void py_xsum_add_sqnorm(accumulatorType *const acc,
                         pybind11::array_t<xsum_flt> const &py_vec) {
   pybind11::buffer_info buf = py_vec.request();
   if (buf.ndim != 1) {
@@ -57,11 +58,12 @@ void py_xsum_add_sqnorm(T *const acc,
   }
   xsum_flt *vec = static_cast<xsum_flt *>(buf.ptr);
   xsum_length const n = static_cast<xsum_length>(buf.size);
-  xsum_add_sqnorm<T>(acc, vec, n);
+  xsum_add_sqnorm<accumulatorType>(acc, vec, n);
 }
 
-template <typename T>
-void py_xsum_add_dot(T *const acc, pybind11::array_t<xsum_flt> const &py_vec1,
+template <typename accumulatorType>
+void py_xsum_add_dot(accumulatorType *const acc,
+                     pybind11::array_t<xsum_flt> const &py_vec1,
                      pybind11::array_t<xsum_flt> const &py_vec2) {
   pybind11::buffer_info buf1 = py_vec1.request();
   pybind11::buffer_info buf2 = py_vec2.request();
@@ -74,7 +76,7 @@ void py_xsum_add_dot(T *const acc, pybind11::array_t<xsum_flt> const &py_vec1,
   if (n != static_cast<xsum_length>(buf2.size)) {
     throw std::runtime_error("Input shapes must match!");
   }
-  xsum_add_dot<T>(acc, vec1, vec2, n);
+  xsum_add_dot<accumulatorType>(acc, vec1, vec2, n);
 }
 
 class py_xsum_small : public xsum_small {
@@ -175,6 +177,7 @@ PYBIND11_MODULE(xsum, m) {
 
   m.def("xsum_init", &xsum_init<xsum_small_accumulator>,
         "Initilize the xsum_small_accumulator object");
+
   m.def("xsum_init", &xsum_init<xsum_large_accumulator>,
         "Initilize the xsum_large_accumulator object");
 
@@ -182,6 +185,7 @@ PYBIND11_MODULE(xsum, m) {
         (void (*)(xsum_small_accumulator *const, xsum_flt const)) &
             xsum_add<xsum_small_accumulator>,
         "Add a value to the superaccumulator.");
+
   m.def("xsum_add",
         (void (*)(xsum_large_accumulator *const, xsum_flt const)) &
             xsum_add<xsum_large_accumulator>,
@@ -192,6 +196,7 @@ PYBIND11_MODULE(xsum, m) {
                   pybind11::array_t<xsum_flt> const &)) &
             py_xsum_add<xsum_small_accumulator>,
         "Add a vector of values to the superaccumulator.");
+
   m.def("xsum_add",
         (void (*)(xsum_large_accumulator *const,
                   pybind11::array_t<xsum_flt> const &)) &
@@ -201,39 +206,44 @@ PYBIND11_MODULE(xsum, m) {
   m.def("xsum_add",
         (void (*)(xsum_small_accumulator *const,
                   xsum_small_accumulator const *const)) &
-            xsum_add,
+            xsum_add<xsum_small_accumulator>,
         "Add a small accumulator to the small superaccumulator.");
+
   m.def(
       "xsum_add",
       (void (*)(xsum_large_accumulator *const, xsum_large_accumulator *const)) &
-          xsum_add,
+          xsum_add<xsum_large_accumulator>,
       "Add a large accumulator to the large superaccumulator.");
+
   m.def("xsum_add",
         (void (*)(xsum_large_accumulator *const,
                   xsum_small_accumulator const *const)) &
-            xsum_add,
+            xsum_add<xsum_large_accumulator>,
         "Add a small accumulator to the large superaccumulator.");
 
   m.def("xsum_add_sqnorm", &py_xsum_add_sqnorm<xsum_small_accumulator>,
         "Add a squared norm of vector of values to the superaccumulator.");
+
   m.def("xsum_add_sqnorm", &py_xsum_add_sqnorm<xsum_large_accumulator>,
         "Add a squared norm of vector of values to the superaccumulator.");
 
   m.def("xsum_add_dot", &py_xsum_add_dot<xsum_small_accumulator>,
         "Add dot product of two vectors of values to the superaccumulator.");
+
   m.def("xsum_add_dot", &py_xsum_add_dot<xsum_large_accumulator>,
         "Add dot product of two vectors of values to the superaccumulator.");
 
   m.def("xsum_round", &xsum_round<xsum_small_accumulator>,
         "Return the results of rounding the superaccumulator.");
+
   m.def("xsum_round", &xsum_round<xsum_large_accumulator>,
         "Return the results of rounding the superaccumulator.");
 
-  m.def("xsum_round_to_small", &xsum_round_to_small,
+  m.def("xsum_round_to_small", &xsum_round_to_small<xsum_large_accumulator>,
         "Return the results of rounding a large superaccumulator to a small "
         "superaccumulator.");
 
-  m.def("pbinary", &pbinary,
+  m.def("print_binary", &print_binary<double>,
         "Print double precision floating point value in binary.");
 
   pybind11::class_<py_xsum_small>(m, "xsum_small")
