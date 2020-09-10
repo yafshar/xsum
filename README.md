@@ -337,6 +337,8 @@ Two simple examples on how to use the library:
 
 #include "xsum/xsum.hpp"
 
+using namespace xsum;
+
 int main() {
   // Large superaccumulator
   xsum_large_accumulator lacc;
@@ -358,6 +360,8 @@ or a `xsum_small` or `xsum_large` objects can simply be used as,
 #include <iostream>
 
 #include "xsum/xsum.hpp"
+
+using namespace xsum;
 
 int main() {
   // Large superaccumulator
@@ -412,6 +416,8 @@ multiple processors, where the final summation across all processors is desired.
 
 #include "xsum/myxsum.hpp"
 #include "xsum/xsum.hpp"
+
+using namespace xsum;
 
 int main() {
   // Initialize the MPI environment
@@ -470,7 +476,7 @@ mpic++ mpi_simple.cpp -std=c++11 -O3 -o simple
 running the above code using 4 processors would result,
 
 ```bash
-mpirunt -np 4 ./simple
+mpirun -np 4 ./simple
 
 Rank =  0, sum   =  0.95600000000000007194, sum 1 =  0.95599999999998419575, sum 2 =  0.95600000000000007194
 ```
