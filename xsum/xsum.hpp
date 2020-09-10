@@ -85,6 +85,7 @@
 #include <memory>
 #include <vector>
 
+namespace xsum {
 /* CONSTANTS DEFINING THE FLOATING POINT FORMAT. */
 
 /*! C floating point type sums are done for */
@@ -106,72 +107,73 @@ using xsum_lcount = std::int_least16_t;
 /*! Unsigned type for holding used flags */
 using xsum_used = std::uint_fast64_t;
 
-/*! Bits in fp mantissa, excludes implict 1 */
-constexpr int XSUM_MANTISSA_BITS = 52;
-/*! Bits in fp exponent */
-constexpr int XSUM_EXP_BITS = 11;
-/*! Mask for mantissa bits */
-constexpr xsum_int XSUM_MANTISSA_MASK =
-    ((static_cast<xsum_int>(1) << XSUM_MANTISSA_BITS) -
-     static_cast<xsum_int>(1));
-/*! Mask for exponent */
-constexpr int XSUM_EXP_MASK = ((1 << XSUM_EXP_BITS) - 1);
-/*! Bias added to signed exponent */
-constexpr int XSUM_EXP_BIAS = ((1 << (XSUM_EXP_BITS - 1)) - 1);
-/*! Position of sign bit */
-constexpr int XSUM_SIGN_BIT = (XSUM_MANTISSA_BITS + XSUM_EXP_BITS);
-/*! Mask for sign bit */
-constexpr xsum_uint XSUM_SIGN_MASK =
-    (static_cast<xsum_uint>(1) << XSUM_SIGN_BIT);
-
-/* CONSTANTS DEFINING THE SMALL ACCUMULATOR FORMAT. */
-
-/*! Bits in chunk of the small accumulator */
-constexpr int XSUM_SCHUNK_BITS = 64;
-/*! # of low bits of exponent, in one chunk */
-constexpr int XSUM_LOW_EXP_BITS = 5;
-/*! Mask for low-order exponent bits */
-constexpr int XSUM_LOW_EXP_MASK = ((1 << XSUM_LOW_EXP_BITS) - 1);
-/*! # of high exponent bits for index */
-constexpr int XSUM_HIGH_EXP_BITS = (XSUM_EXP_BITS - XSUM_LOW_EXP_BITS);
-/*! Mask for high-order exponent bits */
-constexpr int XSUM_HIGH_EXP_MASK = ((1 << XSUM_HIGH_EXP_BITS) - 1);
-/*! # of chunks in small accumulator */
-constexpr int XSUM_SCHUNKS = ((1 << XSUM_HIGH_EXP_BITS) + 3);
-/*! Bits in low part of mantissa */
-constexpr int XSUM_LOW_MANTISSA_BITS = (1 << XSUM_LOW_EXP_BITS);
-/*! Bits in high part */
-constexpr int XSUM_HIGH_MANTISSA_BITS =
-    (XSUM_MANTISSA_BITS - XSUM_LOW_MANTISSA_BITS);
-/*! Mask for low bits */
-constexpr xsum_int XSUM_LOW_MANTISSA_MASK =
-    ((static_cast<xsum_int>(1) << XSUM_LOW_MANTISSA_BITS) -
-     static_cast<xsum_int>(1));
-/*! Bits sums can carry into */
-constexpr int XSUM_SMALL_CARRY_BITS =
-    ((XSUM_SCHUNK_BITS - 1) - XSUM_MANTISSA_BITS);
-/*! # terms can add before need prop. */
-constexpr int XSUM_SMALL_CARRY_TERMS = ((1 << XSUM_SMALL_CARRY_BITS) - 1);
-
-/* CONSTANTS DEFINING THE LARGE ACCUMULATOR FORMAT. */
-
-/*! Bits in chunk of the large accumulator */
-constexpr int XSUM_LCHUNK_BITS = 64;
-/*! # of bits in count */
-constexpr int XSUM_LCOUNT_BITS = (64 - XSUM_MANTISSA_BITS);
-/*! # of chunks in large accumulator */
-constexpr int XSUM_LCHUNKS = (1 << (XSUM_EXP_BITS + 1));
-
-/*! DEBUG FLAG.  Set to non-zero for debug ouptut.  Ignored unless xsum.c is
- * compiled with -DDEBUG. */
-constexpr int xsum_debug = 0;
-
 /*! UNION OF FLOATING AND INTEGER TYPES. */
 union fpunion {
   xsum_flt fltv;
   xsum_int intv;
   xsum_uint uintv;
 };
+
+/*! Bits in fp mantissa, excludes implict 1 */
+static constexpr int XSUM_MANTISSA_BITS = 52;
+/*! Bits in fp exponent */
+static constexpr int XSUM_EXP_BITS = 11;
+/*! Mask for mantissa bits */
+static constexpr xsum_int XSUM_MANTISSA_MASK =
+    ((static_cast<xsum_int>(1) << XSUM_MANTISSA_BITS) -
+     static_cast<xsum_int>(1));
+/*! Mask for exponent */
+static constexpr int XSUM_EXP_MASK = ((1 << XSUM_EXP_BITS) - 1);
+/*! Bias added to signed exponent */
+static constexpr int XSUM_EXP_BIAS = ((1 << (XSUM_EXP_BITS - 1)) - 1);
+/*! Position of sign bit */
+static constexpr int XSUM_SIGN_BIT = (XSUM_MANTISSA_BITS + XSUM_EXP_BITS);
+/*! Mask for sign bit */
+static constexpr xsum_uint XSUM_SIGN_MASK =
+    (static_cast<xsum_uint>(1) << XSUM_SIGN_BIT);
+
+/* CONSTANTS DEFINING THE SMALL ACCUMULATOR FORMAT. */
+
+/*! Bits in chunk of the small accumulator */
+static constexpr int XSUM_SCHUNK_BITS = 64;
+/*! # of low bits of exponent, in one chunk */
+static constexpr int XSUM_LOW_EXP_BITS = 5;
+/*! Mask for low-order exponent bits */
+static constexpr int XSUM_LOW_EXP_MASK = ((1 << XSUM_LOW_EXP_BITS) - 1);
+/*! # of high exponent bits for index */
+static constexpr int XSUM_HIGH_EXP_BITS = (XSUM_EXP_BITS - XSUM_LOW_EXP_BITS);
+/*! Mask for high-order exponent bits */
+static constexpr int XSUM_HIGH_EXP_MASK = ((1 << XSUM_HIGH_EXP_BITS) - 1);
+/*! # of chunks in small accumulator */
+static constexpr int XSUM_SCHUNKS = ((1 << XSUM_HIGH_EXP_BITS) + 3);
+/*! Bits in low part of mantissa */
+static constexpr int XSUM_LOW_MANTISSA_BITS = (1 << XSUM_LOW_EXP_BITS);
+/*! Bits in high part */
+static constexpr int XSUM_HIGH_MANTISSA_BITS =
+    (XSUM_MANTISSA_BITS - XSUM_LOW_MANTISSA_BITS);
+/*! Mask for low bits */
+static constexpr xsum_int XSUM_LOW_MANTISSA_MASK =
+    ((static_cast<xsum_int>(1) << XSUM_LOW_MANTISSA_BITS) -
+     static_cast<xsum_int>(1));
+/*! Bits sums can carry into */
+static constexpr int XSUM_SMALL_CARRY_BITS =
+    ((XSUM_SCHUNK_BITS - 1) - XSUM_MANTISSA_BITS);
+/*! # terms can add before need prop. */
+static constexpr int XSUM_SMALL_CARRY_TERMS =
+    ((1 << XSUM_SMALL_CARRY_BITS) - 1);
+
+/* CONSTANTS DEFINING THE LARGE ACCUMULATOR FORMAT. */
+
+/*! Bits in chunk of the large accumulator */
+static constexpr int XSUM_LCHUNK_BITS = 64;
+/*! # of bits in count */
+static constexpr int XSUM_LCOUNT_BITS = (64 - XSUM_MANTISSA_BITS);
+/*! # of chunks in large accumulator */
+static constexpr int XSUM_LCHUNKS = (1 << (XSUM_EXP_BITS + 1));
+
+/*! DEBUG FLAG.  Set to non-zero for debug ouptut.  Ignored unless xsum.c is
+ * compiled with -DDEBUG. */
+static constexpr int xsum_debug = 0;
 
 /*! CLASSES FOR EXACT SUMMATION. */
 
@@ -5833,5 +5835,5 @@ xsum_flt xsum_round<xsum_large_accumulator>(
     xsum_large_accumulator *const lacc) {
   return xsum_round<xsum_small_accumulator>(xsum_round_to_small_ptr(lacc));
 }
-
+}  // namespace xsum
 #endif  // XSUM_HPP

@@ -37,13 +37,13 @@
 
 #include "xsum.hpp"
 
-namespace {
+namespace xsum {
 
 /*!
  * \brief Create a mpi type object
  *
- * \tparam T data type one of \c xsum_small_accumulator or \c
- * xsum_large_accumulator \param datatype
+ * \tparam T data type one of \c xsum_small_accumulator or
+ *         \c xsum_large_accumulator \param datatype
  */
 template <typename T>
 void create_mpi_type(MPI_Datatype &datatype);
@@ -51,8 +51,8 @@ void create_mpi_type(MPI_Datatype &datatype);
 /*!
  * \brief Create a mpi type object
  *
- * \tparam T data type one of \c xsum_small_accumulator or \c
- * xsum_large_accumulator \return MPI_Datatype
+ * \tparam T data type one of \c xsum_small_accumulator or
+ *         \c xsum_large_accumulator \return MPI_Datatype
  */
 template <typename T>
 MPI_Datatype create_mpi_type();
@@ -60,9 +60,11 @@ MPI_Datatype create_mpi_type();
 /*!
  * \brief destroy the user created mpi type object
  *
+ * \tparam T
  * \param datatype
  */
-void destroy_mpi_type(MPI_Datatype &datatype);
+template <typename T>
+void destroy_mpi_type(T &datatype);
 
 /*!
  * \brief A user-defined xsum function
@@ -71,11 +73,12 @@ void destroy_mpi_type(MPI_Datatype &datatype);
  * \c xsum_large_accumulator type to an op handle that can subsequently be used
  * in \c MPI_Reduce, \c MPI_Allreduce, \c MPI_Reduce_scatter, and \c MPI_Scan.
  *
- * \tparam T data type one of \c xsum_small_accumulator or \c
- * xsum_large_accumulator \param invec arrays of len elements that \c myXSUM
- * function is combining. \param inoutvec arrays of len elements that \c myXSUM
- * function is combining. \param len length \param datatype a handle to the data
- * type that was passed into the call
+ * \tparam T data type one of \c xsum_small_accumulator or
+ *         \c xsum_large_accumulator
+ * \param invec arrays of len elements that \c myXSUM function is combining.
+ * \param inoutvec arrays of len elements that \c myXSUM function is combining.
+ * \param len length
+ * \param datatype a handle to the data type that was passed into the call
  */
 template <typename T>
 void myXSUM(void *invec, void *inoutvec, int *len, MPI_Datatype *datatype);
@@ -89,7 +92,8 @@ template <typename T>
 MPI_Op create_XSUM();
 
 /* Free the created user-op */
-void destroy_XSUM(MPI_Op &SSUM);
+template <typename T>
+void destroy_XSUM(T &SSUM);
 
 // Implementation
 
@@ -180,7 +184,17 @@ MPI_Datatype create_mpi_type<xsum_large_accumulator>() {
   return large_accumulator_type;
 }
 
-void destroy_mpi_type(MPI_Datatype &user_type) { MPI_Type_free(&user_type); }
+template <typename T>
+void destroy_mpi_type(T &user_type) {
+  std::cerr << "Not implemented on purpose!" << std::endl;
+  int ierr;
+  MPI_Abort(MPI_COMM_WORLD, ierr);
+}
+
+template <>
+void destroy_mpi_type<MPI_Datatype>(MPI_Datatype &user_type) {
+  MPI_Type_free(&user_type);
+}
 
 template <typename T>
 void myXSUM(void *invec, void *inoutvec, int *len, MPI_Datatype *datatype) {
@@ -252,7 +266,17 @@ MPI_Op create_XSUM<xsum_large_accumulator>() {
   return XSUM;
 }
 
-void destroy_XSUM(MPI_Op &XSUM) { MPI_Op_free(&XSUM); }
-}  // namespace
+template <typename T>
+void destroy_XSUM(T &SSUM) {
+  std::cerr << "Not implemented on purpose!" << std::endl;
+  int ierr;
+  MPI_Abort(MPI_COMM_WORLD, ierr);
+}
+
+template <>
+void destroy_XSUM<MPI_Op>(MPI_Op &XSUM) {
+  MPI_Op_free(&XSUM);
+}
+}  // namespace xsum
 
 #endif  // MYXSUM_HPP
