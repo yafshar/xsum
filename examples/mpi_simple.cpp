@@ -14,6 +14,8 @@
 #include "../xsum/myxsum.hpp"
 #include "../xsum/xsum.hpp"
 
+using namespace xsum;
+
 int main() {
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);

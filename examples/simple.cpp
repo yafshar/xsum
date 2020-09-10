@@ -3,6 +3,8 @@
 
 #include "../xsum/xsum.hpp"
 
+using namespace xsum;
+
 int main() {
   // Large superaccumulator
   xsum_large_accumulator lacc;
