@@ -39,6 +39,8 @@
 
 #include "../xsum/xsum.hpp"
 
+using namespace xsum;
+
 constexpr double pow2_16 = (1.0 / (1 << 16));
 constexpr double pow2_32 = (pow2_16 * pow2_16);
 constexpr double pow2_64 = (pow2_32 * pow2_32);

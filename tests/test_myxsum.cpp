@@ -19,6 +19,8 @@
 #include "../xsum/myxsum.hpp"
 #include "../xsum/xsum.hpp"
 
+using namespace xsum;
+
 xsum_flt term1[] = {1.234e88, -93.3e-23, 994.33,  1334.3,  457.34, -1.234e88,
                     93.3e-23, -994.33,   -1334.3, -457.34, 0};
 xsum_flt term2[] = {1.,
