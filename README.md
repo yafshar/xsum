@@ -4,6 +4,7 @@
 [![Python package](https://github.com/yafshar/xsum/workflows/Python%20package/badge.svg)](https://github.com/yafshar/xsum/actions)
 [![Windows Build status](https://ci.appveyor.com/api/projects/status/kd1sksf5t3kdsibn/branch/master?svg=true)](https://ci.appveyor.com/project/yafshar/xsum/branch/master)
 [![PyPI](https://img.shields.io/pypi/v/xsum.svg)](https://pypi.python.org/pypi/xsum)
+[![Anaconda-Server Badge](https://img.shields.io/conda/vn/conda-forge/xsum.svg)](https://anaconda.org/conda-forge/xsum)
 [![License](https://img.shields.io/badge/license-LGPL--v2-blue)](LICENSE)
 
 In applications like optimization or finding the sample mean of data, it is
@@ -484,31 +485,81 @@ Rank =  0, sum   =  0.95600000000000007194, sum 1 =  0.95599999999998419575, sum
 ### Python
 
 The provided Python bindings provide the *exact summation* interface in a
-Python code. You need Python 3.6 or later to run `xsum`. You can have multiple
-Python versions (2.x and 3.x) installed on the same system without problems.
+Python code.
+
+### Python requirements
+
+You need Python 3.6 or later to run `xsum`. You can have multiple Python
+versions (2.x and 3.x) installed on the same system without problems.
 
 To install Python 3 for different Linux flavors, macOS and Windows, packages
 are available at\
 [https://www.python.org/getit/](https://www.python.org/getit/)
 
+### Using pip
+
 **pip** is the most popular tool for installing Python packages, and the one
-included with modern versions of Python. `pip` currently supports cloning over
-`git`.
+included with modern versions of Python.
 
 `xsum` can be installed with `pip`:
 
 ```sh
-pip install git+https://github.com/yafshar/xsum.git
+pip install xsum
 ```
 
 **Note:**
 
 Depending on your Python installation, you may need to use `pip3` instead of
-`pip`, or you may have to run `pip` like this:
+`pip`.
 
 ```sh
-python3 -m pip install git+https://github.com/yafshar/xsum.git
+pip3 install xsum
 ```
+
+Depending on your configuration, you may have to run `pip` like this:
+
+```sh
+python3 -m pip install xsum
+```
+
+### Using pip (GIT Support)
+
+`pip` currently supports cloning over `git`
+
+```sh
+pip install git+https://github.com/yafshar/xsum.git
+```
+
+For more information and examples, see the
+[pip install](https://pip.pypa.io/en/stable/reference/pip_install/#id18)
+reference.
+
+### Using conda
+
+**conda** is the package management tool for Anaconda Python installations.
+
+Installing `xsum` from the `conda-forge` channel can be achieved by
+adding `conda-forge` to your channels with:
+
+```sh
+conda config --add channels conda-forge
+```
+
+Once the `conda-forge` channel has been enabled, `xsum` can be
+installed with:
+
+```sh
+conda install xsum
+```
+
+It is possible to list all of the versions of `xsum` available on your platform
+with:
+
+```sh
+conda search xsum --channel conda-forge
+```
+
+### Python examples
 
 ```py
 from xsum import *
