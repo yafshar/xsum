@@ -498,6 +498,8 @@ are available at\
 
 ### Using pip
 
+[![PyPI](https://img.shields.io/pypi/v/xsum.svg)](https://pypi.python.org/pypi/xsum)
+
 **pip** is the most popular tool for installing Python packages, and the one
 included with modern versions of Python.
 
@@ -535,6 +537,9 @@ For more information and examples, see the
 reference.
 
 ### Using conda
+
+[![Anaconda-Server Badge](https://img.shields.io/conda/vn/conda-forge/xsum.svg)](https://anaconda.org/conda-forge/xsum)
+[![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/xsum.svg)](https://anaconda.org/conda-forge/xsum)
 
 **conda** is the package management tool for Anaconda Python installations.
 
