@@ -90,6 +90,9 @@ xsum_modules = [Extension('xsum',
                           language='c++'
                           ), ]
 
+_cmdclass=versioneer.get_cmdclass()
+_cmdclass['build_ext'] = BuildExt
+
 setup(
     name='xsum',
     version=versioneer.get_version(),
@@ -111,7 +114,7 @@ setup(
     keywords=['xsum'],
     packages=find_packages(),
     install_requires=['numpy'],
-    cmdclass={'build_ext': BuildExt},
+    cmdclass=_cmdclass,
     ext_modules=xsum_modules,
     zip_safe=False,
 )

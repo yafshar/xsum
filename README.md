@@ -1,6 +1,5 @@
 # Fast Exact Summation Using Small and Large Superaccumulators (XSUM)
 
-[![Build Status](https://travis-ci.com/yafshar/xsum.svg?token=aY1dW9PfH9SMySdB6Pzy&branch=master)](https://travis-ci.com/yafshar/xsum)
 [![Python package](https://github.com/yafshar/xsum/workflows/Python%20package/badge.svg)](https://github.com/yafshar/xsum/actions)
 [![Windows Build status](https://ci.appveyor.com/api/projects/status/kd1sksf5t3kdsibn/branch/master?svg=true)](https://ci.appveyor.com/project/yafshar/xsum/branch/master)
 [![PyPI](https://img.shields.io/pypi/v/xsum.svg)](https://pypi.python.org/pypi/xsum)
