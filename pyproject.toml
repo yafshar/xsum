@@ -2,3 +2,9 @@
 requires = ["setuptools", "wheel", "pybind11", "versioneer[toml]"]
 build-backend = "setuptools.build_meta"
 
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "_version.py"
+parentdir_prefix = ""
+
