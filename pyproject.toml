@@ -5,6 +5,6 @@ build-backend = "setuptools.build_meta"
 [tool.versioneer]
 VCS = "git"
 style = "pep440"
-versionfile_source = "_version.py"
-parentdir_prefix = ""
+versionfile_source = "xsum/_version.py"
+parentdir_prefix = "xsum-"
 
