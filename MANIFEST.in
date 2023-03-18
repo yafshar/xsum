@@ -1,2 +1,4 @@
 include versioneer.py
 include xsum/xsum.hpp
+include xsum/_version.py
+ 
