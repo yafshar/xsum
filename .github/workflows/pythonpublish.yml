@@ -1,4 +1,4 @@
-name: Upload Python Package
+name: Upload xsum Package
 
 on:
   release:
@@ -16,11 +16,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME_Y }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD_Y }}
+        python -m pip install build
+    - name: Build a binary wheel and a source tarball
       run: |
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
+        python -m build --sdist --wheel --outdir dist/ .
+    - name: Publish distribution xsum to PyPI
+      if: startsWith(github.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
