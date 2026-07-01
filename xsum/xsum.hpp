@@ -756,9 +756,7 @@ void xsum_small::add(xsum_flt const *v, xsum_length const n) {
       carry_propagate();
     }
 
-    xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
 
     add_no_carry(vec, m + 1);
 
@@ -785,9 +783,7 @@ void xsum_small::add(std::vector<xsum_flt> const &v) {
       carry_propagate();
     }
 
-    xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
 
     add_no_carry(vec, m + 1);
 
@@ -814,9 +810,7 @@ void xsum_small::add_sqnorm(xsum_flt const *v, xsum_length const n) {
       carry_propagate();
     }
 
-    xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
 
     add_sqnorm_no_carry(vec, m + 1);
 
@@ -844,9 +838,7 @@ void xsum_small::add_sqnorm(std::vector<xsum_flt> const &v) {
       carry_propagate();
     }
 
-    xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
 
     add_sqnorm_no_carry(vec, m + 1);
 
@@ -876,9 +868,7 @@ void xsum_small::add_dot(xsum_flt const *v1, xsum_flt const *v2,
       carry_propagate();
     }
 
-    xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
 
     add_dot_no_carry(vec1, vec2, m + 1);
 
@@ -911,9 +901,7 @@ void xsum_small::add_dot(std::vector<xsum_flt> const &v1,
       carry_propagate();
     }
 
-    xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
 
     add_dot_no_carry(vec1, vec2, m + 1);
 

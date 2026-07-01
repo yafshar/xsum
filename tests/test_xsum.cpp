@@ -36,6 +36,7 @@
 #include <cmath>
 #include <cstdio>
 #include <iomanip>
+#include <vector>
 
 #include "../xsum/xsum.hpp"
 
@@ -638,6 +639,65 @@ int main(int argc, char **argv) {
     xsum_add(&lacc1, &lacc2);
 
     result(&lacc1, s, i / 11);
+  }
+
+  std::printf("\nH: SMALL CLASS VECTOR METHOD TESTS\n");
+
+  {
+    constexpr int n = XSUM_SMALL_CARRY_TERMS + 53;
+
+    std::vector<xsum_flt> vec1;
+    std::vector<xsum_flt> vec2;
+    vec1.reserve(n);
+    vec2.reserve(n);
+
+    for (int i = 0; i < n; ++i) {
+      double const sign = (i % 2 == 0) ? 1.0 : -1.0;
+      vec1.push_back(sign * (1.0 + (i % 17) * 0.125));
+      vec2.push_back((i % 5 - 2) * 0.25 + 1.0 / (i + 1));
+    }
+
+    vec1[101] = 1.0e200;
+    vec2[101] = 1.0e-200;
+    vec1[202] = -1.0e200;
+    vec2[202] = 1.0e-200;
+
+    xsum_small sum_manual;
+    xsum_small sqnorm_manual;
+    xsum_small dot_manual;
+    for (int i = 0; i < n; ++i) {
+      sum_manual.add(vec1[i]);
+      sqnorm_manual.add(vec1[i] * vec1[i]);
+      dot_manual.add(vec1[i] * vec2[i]);
+    }
+
+    double const sum = sum_manual.round();
+    double const sqnorm = sqnorm_manual.round();
+    double const dot = dot_manual.round();
+
+    xsum_small sum_pointer;
+    sum_pointer.add(vec1.data(), n);
+    result(sum_pointer.get(), sum, 0);
+
+    xsum_small sum_vector;
+    sum_vector.add(vec1);
+    result(sum_vector.get(), sum, 1);
+
+    xsum_small sqnorm_pointer;
+    sqnorm_pointer.add_sqnorm(vec1.data(), n);
+    result(sqnorm_pointer.get(), sqnorm, 2);
+
+    xsum_small sqnorm_vector;
+    sqnorm_vector.add_sqnorm(vec1);
+    result(sqnorm_vector.get(), sqnorm, 3);
+
+    xsum_small dot_pointer;
+    dot_pointer.add_dot(vec1.data(), vec2.data(), n);
+    result(dot_pointer.get(), dot, 4);
+
+    xsum_small dot_vector;
+    dot_vector.add_dot(vec1, vec2);
+    result(dot_vector.get(), dot, 5);
   }
 
   if (small_test_fails || large_test_fails) {

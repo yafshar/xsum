@@ -482,6 +482,59 @@ class XSUMModule:
             lacc.add(a)
             self.assertTrue(result(lacc, s, i, msg))
 
+    def test_small_class_vector_methods(self):
+        """H: SMALL CLASS VECTOR METHOD TESTS"""
+
+        msg = "H: SMALL CLASS VECTOR METHOD TESTS"
+        n = 2100
+
+        idx = np.arange(n, dtype=np.float64)
+        sign = np.where((idx.astype(np.int64) % 2) == 0, 1.0, -1.0)
+        vec1 = sign * (1.0 + (idx.astype(np.int64) % 17) * 0.125)
+        vec2 = ((idx.astype(np.int64) % 5) - 2) * 0.25 + 1.0 / (idx + 1.0)
+
+        vec1[101] = 1.0e150
+        vec2[101] = 1.0e-150
+        vec1[202] = -1.0e150
+        vec2[202] = 1.0e-150
+
+        sum_manual = xsum_small()
+        sqnorm_manual = xsum_small()
+        dot_manual = xsum_small()
+
+        for i in range(n):
+            sum_manual.add(vec1[i])
+            sqnorm_manual.add(vec1[i] * vec1[i])
+            dot_manual.add(vec1[i] * vec2[i])
+
+        sum_result = sum_manual.round()
+        sqnorm_result = sqnorm_manual.round()
+        dot_result = dot_manual.round()
+
+        sum_class = xsum_small()
+        sum_class.add(vec1)
+        self.assertTrue(result(sum_class, sum_result, 0, msg))
+
+        sum_template = xsum_small_accumulator()
+        xsum_add(sum_template, vec1)
+        self.assertTrue(result(sum_template, sum_result, 1, msg))
+
+        sqnorm_class = xsum_small()
+        sqnorm_class.add_sqnorm(vec1)
+        self.assertTrue(result(sqnorm_class, sqnorm_result, 2, msg))
+
+        sqnorm_template = xsum_small_accumulator()
+        xsum_add_sqnorm(sqnorm_template, vec1)
+        self.assertTrue(result(sqnorm_template, sqnorm_result, 3, msg))
+
+        dot_class = xsum_small()
+        dot_class.add_dot(vec1, vec2)
+        self.assertTrue(result(dot_class, dot_result, 4, msg))
+
+        dot_template = xsum_small_accumulator()
+        xsum_add_dot(dot_template, vec1, vec2)
+        self.assertTrue(result(dot_template, dot_result, 5, msg))
+
 
 class TestXSUMModule(XSUMModule, unittest.TestCase):
     @classmethod
