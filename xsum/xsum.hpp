@@ -672,6 +672,12 @@ static xsum_small_accumulator *xsum_round_to_small_ptr(
 template <typename accumulatorType>
 xsum_small_accumulator xsum_round_to_small(accumulatorType *const acc);
 
+void xsum_large_to_small_accumulator(xsum_small_accumulator *const sacc,
+                                     xsum_large_accumulator *const lacc);
+
+void xsum_small_to_large_accumulator(xsum_large_accumulator *const lacc,
+                                     xsum_small_accumulator const *const sacc);
+
 template <typename T>
 static void print_binary(T const d);
 
@@ -4848,6 +4854,17 @@ xsum_small_accumulator xsum_round_to_small<xsum_large_accumulator>(
   sacc.NaN = lacc->sacc.NaN;
   sacc.adds_until_propagate = lacc->sacc.adds_until_propagate;
   return sacc;
+}
+
+void xsum_large_to_small_accumulator(xsum_small_accumulator *const sacc,
+                                     xsum_large_accumulator *const lacc) {
+  *sacc = *xsum_round_to_small_ptr<xsum_large_accumulator>(lacc);
+}
+
+void xsum_small_to_large_accumulator(xsum_large_accumulator *const lacc,
+                                     xsum_small_accumulator const *const sacc) {
+  xsum_init<xsum_large_accumulator>(lacc);
+  lacc->sacc = *sacc;
 }
 
 template <>

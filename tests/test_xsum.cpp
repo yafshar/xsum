@@ -355,6 +355,28 @@ int main(int argc, char **argv) {
     result(&linf, 1.0 / 0.0, 9);
   }
 
+  std::printf("\nA3: CONVERSION TESTS\n");
+
+  {
+    int const base = 4 * 11;
+    double const s = ten_term[base + 10];
+
+    xsum_large_accumulator lacc;
+    xsum_add(&lacc, ten_term + base, 10);
+
+    xsum_small_accumulator sacc;
+    xsum_add(&sacc, 1.0 / 0.0);
+    xsum_large_to_small_accumulator(&sacc, &lacc);
+    result(&sacc, s, 0);
+    result(&lacc, s, 1);
+
+    xsum_large_accumulator lacc_from_small;
+    xsum_add(&lacc_from_small, -1.0 / 0.0);
+    xsum_small_to_large_accumulator(&lacc_from_small, &sacc);
+    result(&lacc_from_small, s, 2);
+    result(&sacc, s, 3);
+  }
+
   std::printf("\nB: ONE TERM TESTS\n");
 
   for (int i = 0; i < one_term_size; ++i) {

@@ -251,6 +251,12 @@ PYBIND11_MODULE(xsum, m) {
         "Return the results of rounding a large superaccumulator to a small "
         "superaccumulator.");
 
+  m.def("xsum_large_to_small_accumulator", &xsum_large_to_small_accumulator,
+        "Transfer a large superaccumulator to a small superaccumulator.");
+
+  m.def("xsum_small_to_large_accumulator", &xsum_small_to_large_accumulator,
+        "Transfer a small superaccumulator to a large superaccumulator.");
+
   m.def("print_binary", &print_binary<double>,
         "Print double precision floating point value in binary.");
 

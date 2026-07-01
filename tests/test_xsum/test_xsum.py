@@ -306,6 +306,28 @@ class XSUMModule:
         xsum_negate(linf)
         self.assertTrue(result(linf, np.inf, 9, msg))
 
+    def test_conversion(self):
+        """A3: CONVERSION TESTS"""
+
+        msg = "A3: CONVERSION TESTS"
+        terms = ten_term[4]
+        s = terms[10]
+
+        lacc = xsum_large_accumulator()
+        xsum_add(lacc, terms[:-1])
+
+        sacc = xsum_small_accumulator()
+        xsum_add(sacc, np.inf)
+        xsum_large_to_small_accumulator(sacc, lacc)
+        self.assertTrue(result(sacc, s, 0, msg))
+        self.assertTrue(result(lacc, s, 1, msg))
+
+        lacc_from_small = xsum_large_accumulator()
+        xsum_add(lacc_from_small, -np.inf)
+        xsum_small_to_large_accumulator(lacc_from_small, sacc)
+        self.assertTrue(result(lacc_from_small, s, 2, msg))
+        self.assertTrue(result(sacc, s, 3, msg))
+
     def test_one_term(self):
         """B: ONE TERM TESTS"""
 
