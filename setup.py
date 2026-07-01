@@ -81,7 +81,7 @@ class BuildExt(build_ext):
         build_ext.build_extensions(self)
 
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 xsum_modules = [Extension('xsum',
@@ -102,17 +102,22 @@ setup(
     url='https://github.com/yafshar/xsum',
     author='Yaser Afshar',
     author_email='ya.afshar@gmail.com',
-    license='LGPLv2',
+    license='LGPL-2.1-or-later',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering',
         'Operating System :: OS Independent',
-        'License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)'
+        'License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
     ],
-    setup_requires=['pybind11>=2.5.0'],
     keywords=['xsum'],
     packages=find_packages(),
+    python_requires='>=3.10',
     install_requires=['numpy'],
     cmdclass=_cmdclass,
     ext_modules=xsum_modules,

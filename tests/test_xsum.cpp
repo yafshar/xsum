@@ -1,4 +1,4 @@
-/* Copyright 2015, 2018 Radford M. Neal
+/* Copyright 2015, 2018, 2021, 2024 Radford M. Neal
 
    Permission is hereby granted, free of charge, to any person obtaining
    a copy of this software and associated documentation files (the
@@ -21,7 +21,7 @@
 */
 
 //
-// Copyright (c) 2020, Regents of the University of Minnesota.
+// Copyright (c) 2020-2026, Regents of the University of Minnesota.
 // All rights reserved.
 //
 // Contributors:
@@ -36,6 +36,7 @@
 #include <cmath>
 #include <cstdio>
 #include <iomanip>
+#include <vector>
 
 #include "../xsum/xsum.hpp"
 
@@ -307,6 +308,142 @@ int main(int argc, char **argv) {
     xsum_large lacc;
     result(sacc.get(), 0, 0);
     result(lacc.get(), 0, 0);
+  }
+
+  std::printf("\nA2: NEGATE TESTS\n");
+
+  {
+    int const base = 4 * 11;
+    double const s = ten_term[base + 10];
+
+    xsum_small_accumulator sacc;
+    xsum_add(&sacc, ten_term + base, 10);
+    xsum_negate(&sacc);
+    result(&sacc, -s, 0);
+    xsum_negate(&sacc);
+    result(&sacc, s, 1);
+
+    xsum_large_accumulator lacc;
+    xsum_add(&lacc, ten_term + base, 10);
+    xsum_negate(&lacc);
+    result(&lacc, -s, 2);
+    xsum_negate(&lacc);
+    result(&lacc, s, 3);
+
+    xsum_small small;
+    small.add(ten_term + base, 10);
+    small.negate();
+    result(small.get(), -s, 4);
+    small.negate();
+    result(small.get(), s, 5);
+
+    xsum_large large;
+    large.add(ten_term + base, 10);
+    large.negate();
+    result(large.get(), -s, 6);
+    large.negate();
+    result(large.get(), s, 7);
+
+    xsum_small_accumulator sinf;
+    xsum_add(&sinf, 1.0 / 0.0);
+    xsum_negate(&sinf);
+    result(&sinf, -1.0 / 0.0, 8);
+
+    xsum_large_accumulator linf;
+    xsum_add(&linf, -1.0 / 0.0);
+    xsum_negate(&linf);
+    result(&linf, 1.0 / 0.0, 9);
+  }
+
+  std::printf("\nA3: CONVERSION TESTS\n");
+
+  {
+    int const base = 4 * 11;
+    double const s = ten_term[base + 10];
+
+    xsum_large_accumulator lacc;
+    xsum_add(&lacc, ten_term + base, 10);
+
+    xsum_small_accumulator sacc;
+    xsum_add(&sacc, 1.0 / 0.0);
+    xsum_large_to_small_accumulator(&sacc, &lacc);
+    result(&sacc, s, 0);
+    result(&lacc, s, 1);
+
+    xsum_large_accumulator lacc_from_small;
+    xsum_add(&lacc_from_small, -1.0 / 0.0);
+    xsum_small_to_large_accumulator(&lacc_from_small, &sacc);
+    result(&lacc_from_small, s, 2);
+    result(&sacc, s, 3);
+  }
+
+  std::printf("\nA4: INTEGER DIVISION TESTS\n");
+
+  {
+    auto check_small_div = [](double const r, double const s, int const i) {
+      ++total_small_test;
+      if (different(r, s)) {
+        ++small_test_fails;
+        std::printf(" \n-- TEST %d\n", i);
+        std::printf("   ANSWER: %.16le\n", s);
+        std::printf("small div: Result incorrect %.16le != %.16le\n", r, s);
+      }
+    };
+
+    auto check_large_div = [](double const r, double const s, int const i) {
+      ++total_large_test;
+      if (different(r, s)) {
+        ++large_test_fails;
+        std::printf(" \n-- TEST %d\n", i);
+        std::printf("   ANSWER: %.16le\n", s);
+        std::printf("large div: Result incorrect %.16le != %.16le\n", r, s);
+      }
+    };
+
+    int const base = 4 * 11;
+    double const s = ten_term[base + 10];
+    double const q = s / 11.0;
+
+    xsum_small_accumulator sacc;
+    xsum_add(&sacc, ten_term + base, 10);
+    check_small_div(xsum_small_div_unsigned(&sacc, 11), q, 0);
+    check_small_div(xsum_small_div_int(&sacc, -11), -q, 1);
+    result(&sacc, s, 2);
+
+    xsum_large_accumulator lacc;
+    xsum_add(&lacc, ten_term + base, 10);
+    check_large_div(xsum_large_div_unsigned(&lacc, 11), q, 3);
+    check_large_div(xsum_large_div_int(&lacc, -11), -q, 4);
+    result(&lacc, s, 5);
+
+    xsum_small small;
+    small.add(ten_term + base, 10);
+    check_small_div(small.div_unsigned(11), q, 6);
+    check_small_div(small.div_int(-11), -q, 7);
+
+    xsum_large large;
+    large.add(ten_term + base, 10);
+    check_large_div(large.div_unsigned(11), q, 8);
+    check_large_div(large.div_int(-11), -q, 9);
+
+    xsum_small_accumulator positive;
+    xsum_add(&positive, 2.0);
+    check_small_div(xsum_small_div_unsigned(&positive, 0), 1.0 / 0.0, 10);
+
+    xsum_small_accumulator negative;
+    xsum_add(&negative, -2.0);
+    check_small_div(xsum_small_div_unsigned(&negative, 0), -1.0 / 0.0, 11);
+
+    xsum_small_accumulator zero;
+    check_small_div(xsum_small_div_unsigned(&zero, 0), 0.0 / 0.0, 12);
+
+    xsum_small_accumulator inf;
+    xsum_add(&inf, 1.0 / 0.0);
+    check_small_div(xsum_small_div_unsigned(&inf, 7), 1.0 / 0.0, 13);
+
+    xsum_small_accumulator nan;
+    xsum_add(&nan, 0.0 / 0.0);
+    check_small_div(xsum_small_div_unsigned(&nan, 7), 0.0 / 0.0, 14);
   }
 
   std::printf("\nB: ONE TERM TESTS\n");
@@ -638,6 +775,95 @@ int main(int argc, char **argv) {
     xsum_add(&lacc1, &lacc2);
 
     result(&lacc1, s, i / 11);
+  }
+
+  std::printf("\nH: SMALL CLASS VECTOR METHOD TESTS\n");
+
+  {
+    constexpr int n = XSUM_SMALL_CARRY_TERMS + 54;
+
+    std::vector<xsum_flt> vec1;
+    std::vector<xsum_flt> vec2;
+    vec1.reserve(n);
+    vec2.reserve(n);
+
+    for (int i = 0; i < n; ++i) {
+      double const sign = (i % 2 == 0) ? 1.0 : -1.0;
+      vec1.push_back(sign * (1.0 + (i % 17) * 0.125));
+      vec2.push_back((i % 5 - 2) * 0.25 + 1.0 / (i + 1));
+    }
+
+    vec1[101] = 1.0e200;
+    vec2[101] = 1.0e-200;
+    vec1[202] = -1.0e200;
+    vec2[202] = 1.0e-200;
+
+    xsum_small sum_manual;
+    xsum_small sqnorm_manual;
+    xsum_small dot_manual;
+    for (int i = 0; i < n; ++i) {
+      sum_manual.add(vec1[i]);
+      sqnorm_manual.add(vec1[i] * vec1[i]);
+      dot_manual.add(vec1[i] * vec2[i]);
+    }
+
+    double const sum = sum_manual.round();
+    double const sqnorm = sqnorm_manual.round();
+    double const dot = dot_manual.round();
+
+    xsum_small sum_pointer;
+    sum_pointer.add(vec1.data(), n);
+    result(sum_pointer.get(), sum, 0);
+
+    xsum_small sum_vector;
+    sum_vector.add(vec1);
+    result(sum_vector.get(), sum, 1);
+
+    xsum_small sqnorm_pointer;
+    sqnorm_pointer.add_sqnorm(vec1.data(), n);
+    result(sqnorm_pointer.get(), sqnorm, 2);
+
+    xsum_small sqnorm_vector;
+    sqnorm_vector.add_sqnorm(vec1);
+    result(sqnorm_vector.get(), sqnorm, 3);
+
+    xsum_small dot_pointer;
+    dot_pointer.add_dot(vec1.data(), vec2.data(), n);
+    result(dot_pointer.get(), dot, 4);
+
+    xsum_small dot_vector;
+    dot_vector.add_dot(vec1, vec2);
+    result(dot_vector.get(), dot, 5);
+  }
+
+  std::printf("\nI: ODD LENGTH DOT PRODUCT TESTS\n");
+
+  {
+    constexpr int n = 5;
+    xsum_flt const vec1[n] = {1.0e100, -1.0e100, 0.25, -0.5, 7.0};
+    xsum_flt const vec2[n] = {1.0, 1.0, 4.0, -2.0, 3.0};
+
+    xsum_small expected_acc;
+    for (int i = 0; i < n; ++i) {
+      expected_acc.add(vec1[i] * vec2[i]);
+    }
+    double const dot = expected_acc.round();
+
+    xsum_small_accumulator sacc;
+    xsum_add_dot(&sacc, vec1, vec2, n);
+    result(&sacc, dot, 0);
+
+    xsum_large_accumulator lacc;
+    xsum_add_dot(&lacc, vec1, vec2, n);
+    result(&lacc, dot, 1);
+
+    xsum_small small;
+    small.add_dot(vec1, vec2, n);
+    result(small.get(), dot, 2);
+
+    xsum_large large;
+    large.add_dot(vec1, vec2, n);
+    result(large.get(), dot, 3);
   }
 
   if (small_test_fails || large_test_fails) {

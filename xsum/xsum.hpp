@@ -1,4 +1,4 @@
-/* Copyright 2015, 2018 Radford M. Neal
+/* Copyright 2015, 2018, 2021, 2024 Radford M. Neal
 
    Permission is hereby granted, free of charge, to any person obtaining
    a copy of this software and associated documentation files (the
@@ -45,7 +45,7 @@
 //
 
 //
-// Copyright (c) 2020, Regents of the University of Minnesota.
+// Copyright (c) 2020-2026, Regents of the University of Minnesota.
 // All rights reserved.
 //
 // Contributors:
@@ -76,12 +76,14 @@
 
 #include <algorithm>
 #include <bitset>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -96,8 +98,8 @@ using xsum_int = std::int64_t;
 using xsum_uint = std::uint64_t;
 /*! Integer type for holding an exponent */
 using xsum_expint = std::int_fast16_t;
-/*! TYPE FOR LENGTHS OF ARRAYS.  Must be a signed integer type. */
-using xsum_length = int;
+/*! Type for array lengths; signed, pointer-sized, but not unnecessarily big. */
+using xsum_length = std::ptrdiff_t;
 /*! Integer type of small accumulator chunk */
 using xsum_schunk = std::int64_t;
 /*! Integer type of large accumulator chunk, must be EXACTLY 64 bits in size */
@@ -292,6 +294,15 @@ class xsum_small {
   void add_dot(std::vector<xsum_flt> const &vec1,
                std::vector<xsum_flt> const &vec2);
 
+  /*! Negate the value in a small accumulator. */
+  void negate();
+
+  /*! Return the result of dividing a small accumulator by an unsigned int. */
+  xsum_flt div_unsigned(unsigned const div);
+
+  /*! Return the result of dividing a small accumulator by a signed int. */
+  xsum_flt div_int(int const div);
+
   /*!
    * \brief Return the results of rounding a superaccumulator.
    *
@@ -444,6 +455,15 @@ class xsum_large {
   void add_dot(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n);
   void add_dot(std::vector<xsum_flt> const &vec1,
                std::vector<xsum_flt> const &vec2);
+
+  /* Negate the value in a large accumulator. */
+  void negate();
+
+  /* Return the result of dividing a large accumulator by an unsigned int. */
+  xsum_flt div_unsigned(unsigned const div);
+
+  /* Return the result of dividing a large accumulator by a signed int. */
+  xsum_flt div_int(int const div);
 
   /*
    * RETURN THE RESULT OF ROUNDING A SMALL ACCUMULATOR.  The rounding mode
@@ -653,6 +673,19 @@ void xsum_add_dot(accumulatorType *const acc, std::vector<xsum_flt> const &vec1,
                   std::vector<xsum_flt> const &vec2);
 
 template <typename accumulatorType>
+void xsum_negate(accumulatorType *const acc);
+
+xsum_flt xsum_small_div_unsigned(xsum_small_accumulator *const sacc,
+                                 unsigned const div);
+
+xsum_flt xsum_small_div_int(xsum_small_accumulator *const sacc, int const div);
+
+xsum_flt xsum_large_div_unsigned(xsum_large_accumulator *const lacc,
+                                 unsigned const div);
+
+xsum_flt xsum_large_div_int(xsum_large_accumulator *const lacc, int const div);
+
+template <typename accumulatorType>
 xsum_flt xsum_round(accumulatorType *const acc);
 
 template <typename accumulatorType>
@@ -661,6 +694,12 @@ static xsum_small_accumulator *xsum_round_to_small_ptr(
 
 template <typename accumulatorType>
 xsum_small_accumulator xsum_round_to_small(accumulatorType *const acc);
+
+void xsum_large_to_small_accumulator(xsum_small_accumulator *const sacc,
+                                     xsum_large_accumulator *const lacc);
+
+void xsum_small_to_large_accumulator(xsum_large_accumulator *const lacc,
+                                     xsum_small_accumulator const *const sacc);
 
 template <typename T>
 static void print_binary(T const d);
@@ -757,8 +796,7 @@ void xsum_small::add(xsum_flt const *v, xsum_length const n) {
     }
 
     xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_no_carry(vec, m + 1);
 
@@ -786,8 +824,7 @@ void xsum_small::add(std::vector<xsum_flt> const &v) {
     }
 
     xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_no_carry(vec, m + 1);
 
@@ -815,8 +852,7 @@ void xsum_small::add_sqnorm(xsum_flt const *v, xsum_length const n) {
     }
 
     xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_sqnorm_no_carry(vec, m + 1);
 
@@ -845,8 +881,7 @@ void xsum_small::add_sqnorm(std::vector<xsum_flt> const &v) {
     }
 
     xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_sqnorm_no_carry(vec, m + 1);
 
@@ -877,8 +912,7 @@ void xsum_small::add_dot(xsum_flt const *v1, xsum_flt const *v2,
     }
 
     xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_dot_no_carry(vec1, vec2, m + 1);
 
@@ -912,8 +946,7 @@ void xsum_small::add_dot(std::vector<xsum_flt> const &v1,
     }
 
     xsum_length const m =
-        c - ((1 <= _sacc->adds_until_propagate) ? c - 1
-                                                : _sacc->adds_until_propagate);
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_dot_no_carry(vec1, vec2, m + 1);
 
@@ -929,6 +962,24 @@ void xsum_small::add_dot(std::vector<xsum_flt> const &v1,
   xsum_flt const f2 = *vec2;
   xsum_flt const g = f1 * f2;
   add(g);
+}
+
+void xsum_small::negate() {
+  for (int i = 0; i < XSUM_SCHUNKS; ++i) {
+    _sacc->chunk[i] = -_sacc->chunk[i];
+  }
+
+  if (_sacc->Inf != 0) {
+    _sacc->Inf ^= XSUM_SIGN_MASK;
+  }
+}
+
+xsum_flt xsum_small::div_unsigned(unsigned const div) {
+  return xsum_small_div_unsigned(_sacc.get(), div);
+}
+
+xsum_flt xsum_small::div_int(int const div) {
+  return xsum_small_div_int(_sacc.get(), div);
 }
 
 template <typename T>
@@ -1062,7 +1113,7 @@ xsum_flt xsum_small::round() {
   u.fltv = static_cast<xsum_flt>(ivalue);
 
   int e = (u.uintv >> XSUM_MANTISSA_BITS) & XSUM_EXP_MASK;
-  int more = 1 + XSUM_MANTISSA_BITS + XSUM_EXP_BIAS - e;
+  int more = 2 + XSUM_MANTISSA_BITS + XSUM_EXP_BIAS - e;
 
   if (xsum_debug) {
     std::cout << "e: " << e << ", more: " << more << ", ivalue: " << std::hex
@@ -1117,163 +1168,86 @@ xsum_flt xsum_small::round() {
               << static_cast<long long>(lower) << "\n";
   }
 
-  /* Check for a negative 'ivalue' that when negated doesn't contain a full
-     mantissa's worth of bits, plus one to help rounding.  If so, move one
-     more bit into 'ivalue' from 'lower' (and remove it from 'lower').
-     Note that more than one additional bit will not be required because
-     xsum_carry_propagate ensures the uppermost non-zero chunk is not -1. */
-
-  if (ivalue < 0 && ((-ivalue) & (static_cast<xsum_int>(1)
-                                  << (XSUM_MANTISSA_BITS + 1))) == 0) {
-    int const pos = static_cast<xsum_schunk>(1)
-                    << (XSUM_LOW_MANTISSA_BITS - 1 - more);
-    /* note that left shift undefined if ivalue is negative */
-    ivalue *= 2;
-    if (lower & pos) {
-      ivalue |= 1;
-      lower &= ~pos;
-    }
-    --e;
-  }
-
-  if (xsum_debug) {
-    std::cout << "j: " << j << ", new e: " << e
-              << ", new |ivalue|: " << std::hex << std::setfill('0')
-              << std::setw(16)
-              << static_cast<long long>(ivalue < 0 ? -ivalue : ivalue)
-              << ", lower: " << std::hex << std::setfill('0') << std::setw(16)
-              << static_cast<long long>(lower) << "\n";
-  }
-
-  /* Set u.intv to have just the correct sign bit (rest zeros), and 'ivalue'
-     to now have the absolute value of the mantissa. */
+  /* Decide on rounding, with separate code for positive and negative values.
+     At this point, 'ivalue' has the signed mantissa bits plus two extra
+     rounding bits.  Bits in 'lower' and chunks below add to the magnitude
+     for positive values, but subtract from it for negative values. */
 
   if (ivalue >= 0) {
     u.intv = 0;
-  } else {
-    ivalue = -ivalue;
-    u.intv = XSUM_SIGN_MASK;
-  }
 
-  if (xsum_debug) {
-    if ((ivalue >> (XSUM_MANTISSA_BITS + 1)) != 1) {
-      std::abort();
+    if ((ivalue & 2) == 0) {
+      goto done_rounding;
     }
-  }
 
-  /* Round to nearest, with ties to even. At this point, 'ivalue' has the
-     absolute value of the number to be rounded, including an extra bit at
-     the bottom.  Bits below that are in 'lower' and in the chunks
-     indexed by 'j' and below.  Note that the bits in 'lower' and the chunks
-     below add to the magnitude of the remainder if the number is positive,
-     but subtract from this magnitude if the number is negative.
-     This code goes to done_rounding if it finds that just discarding lower
-     order bits is correct, and to round_away_from_zero if instead the
-     magnitude should be increased by one in the lowest bit. */
+    if ((ivalue & 1) != 0 || (ivalue & 4) != 0) {
+      goto round_away_from_zero;
+    }
 
-  /* extra bit is 0 */
-  if ((ivalue & 1) == 0) {
-    if (xsum_debug) {
-      std::cout << "round toward zero, since remainder magnitude is < 1/2\n";
+    if (lower == 0) {
+      while (j > 0) {
+        --j;
+        if (_sacc->chunk[j] != 0) {
+          lower = 1;
+          break;
+        }
+      }
+    }
+
+    if (lower != 0) {
+      goto round_away_from_zero;
     }
 
     goto done_rounding;
   }
 
-  /* number is positive */
-  if (u.intv == 0) {
-    /* low bit 1 (odd) */
-    if ((ivalue & 2) != 0) {
-      if (xsum_debug) {
-        std::cout
-            << "round away from zero, since magnitude >= 1/2, goes to even\n";
-      }
+  /* Check for a negative 'ivalue' whose negation needs one more bit from
+     'lower' to contain a full mantissa plus the two rounding bits. */
 
-      goto round_away_from_zero;
+  if (((-ivalue) & (static_cast<xsum_int>(1)
+                    << (XSUM_MANTISSA_BITS + 2))) == 0) {
+    xsum_schunk const pos = static_cast<xsum_schunk>(1)
+                            << (XSUM_LOW_MANTISSA_BITS - 1 - more);
+    ivalue *= 2;
+    if (lower & pos) {
+      ivalue += 1;
+      lower &= ~pos;
     }
-
-    if (lower != 0) {
-      if (xsum_debug) {
-        std::cout
-            << "round away from zero, since magnitude > 1/2 (from 'lower')\n";
-      }
-
-      goto round_away_from_zero;
-    }
+    --e;
   }
-  /* number is negative */
-  else {
-    /* low bit 0 (even) */
-    if ((ivalue & 2) == 0) {
-      if (xsum_debug) {
-        std::cout
-            << "round toward zero, since magnitude <= 1/2, goes to even\n";
+
+  u.intv = XSUM_SIGN_MASK;
+  ivalue = -ivalue;
+
+  if ((ivalue & 3) == 3) {
+    goto round_away_from_zero;
+  }
+
+  if ((ivalue & 3) <= 1 || (ivalue & 4) == 0) {
+    goto done_rounding;
+  }
+
+  if (lower == 0) {
+    while (j > 0) {
+      --j;
+      if (_sacc->chunk[j] != 0) {
+        lower = 1;
+        break;
       }
-
-      goto done_rounding;
-    }
-
-    if (lower != 0) {
-      if (xsum_debug) {
-        std::cout
-            << "round toward zero, since magnitude < 1/2 (from 'lower')\n";
-      }
-
-      goto done_rounding;
     }
   }
 
-  /* If we get here, 'lower' is zero.  We need to look at chunks lower down
-     to see if any are non-zero. */
-
-  while (j > 0) {
-    --j;
-
-    if (_sacc->chunk[j] != 0) {
-      lower = 1;
-      break;
-    }
+  if (lower != 0) {
+    goto done_rounding;
   }
 
-  /* number is positive, low bit 0 (even) */
-  if (u.intv == 0) {
-    if (lower != 0) {
-      if (xsum_debug) {
-        std::cout
-            << "round away from zero, since magnitude > 1/2 (low chunks)\n";
-      }
-
-      goto round_away_from_zero;
-    } else {
-      if (xsum_debug) {
-        std::cout << "round toward zero, magnitude == 1/2 (low chunks)\n";
-      }
-
-      goto done_rounding;
-    }
-  }
-  /* number is negative, low bit 1 (odd) */
-  else {
-    if (lower != 0) {
-      if (xsum_debug) {
-        std::cout << "round toward zero, since magnitude < 1/2 (low chunks)\n";
-      }
-
-      goto done_rounding;
-    } else {
-      if (xsum_debug) {
-        std::cout << "round away from zero, magnitude == 1/2 (low chunks)\n";
-      }
-
-      goto round_away_from_zero;
-    }
-  }
+  goto round_away_from_zero;
 
 round_away_from_zero:
   /* Round away from zero, then check for carry having propagated out the
      top, and shift if so. */
-  ivalue += 2;
-  if (ivalue & (static_cast<xsum_int>(1) << (XSUM_MANTISSA_BITS + 2))) {
+  ivalue += 4;
+  if (ivalue & (static_cast<xsum_int>(1) << (XSUM_MANTISSA_BITS + 3))) {
     ivalue >>= 1;
     ++e;
   }
@@ -1282,7 +1256,7 @@ done_rounding:;
 
   /* Get rid of the bottom bit that was used to decide on rounding. */
 
-  ivalue >>= 1;
+  ivalue >>= 2;
 
   /* Adjust to the true exponent, accounting for where this chunk is. */
 
@@ -2524,6 +2498,25 @@ void xsum_large::add_dot(std::vector<xsum_flt> const &vec1,
   }
 }
 
+void xsum_large::negate() {
+  round_to_small_ptr();
+  for (int i = 0; i < XSUM_SCHUNKS; ++i) {
+    _lacc->sacc.chunk[i] = -_lacc->sacc.chunk[i];
+  }
+
+  if (_lacc->sacc.Inf != 0) {
+    _lacc->sacc.Inf ^= XSUM_SIGN_MASK;
+  }
+}
+
+xsum_flt xsum_large::div_unsigned(unsigned const div) {
+  return xsum_large_div_unsigned(_lacc.get(), div);
+}
+
+xsum_flt xsum_large::div_int(int const div) {
+  return xsum_large_div_int(_lacc.get(), div);
+}
+
 xsum_flt xsum_large::round() {
   if (xsum_debug) {
     std::cout << "Rounding large accumulator\n";
@@ -3516,7 +3509,7 @@ xsum_flt xsum_large::sround() {
   u.fltv = static_cast<xsum_flt>(ivalue);
 
   int e = (u.uintv >> XSUM_MANTISSA_BITS) & XSUM_EXP_MASK;
-  int more = 1 + XSUM_MANTISSA_BITS + XSUM_EXP_BIAS - e;
+  int more = 2 + XSUM_MANTISSA_BITS + XSUM_EXP_BIAS - e;
 
   if (xsum_debug) {
     std::cout << "e: " << e << ", more: " << more << ", ivalue: " << std::hex
@@ -3571,162 +3564,86 @@ xsum_flt xsum_large::sround() {
               << static_cast<long long>(lower) << "\n";
   }
 
-  /* Check for a negative 'ivalue' that when negated doesn't contain a full
-     mantissa's worth of bits, plus one to help rounding.  If so, move one
-     more bit into 'ivalue' from 'lower' (and remove it from 'lower').
-     Note that more than one additional bit will not be required because
-     xsum_carry_propagate ensures the uppermost non-zero chunk is not -1. */
-
-  if (ivalue < 0 && ((-ivalue) & (static_cast<xsum_int>(1)
-                                  << (XSUM_MANTISSA_BITS + 1))) == 0) {
-    int const pos = static_cast<xsum_schunk>(1)
-                    << (XSUM_LOW_MANTISSA_BITS - 1 - more);
-    /* note that left shift undefined if ivalue is negative */
-    ivalue *= 2;
-    if (lower & pos) {
-      ivalue |= 1;
-      lower &= ~pos;
-    }
-    --e;
-  }
-
-  if (xsum_debug) {
-    std::cout << "j: " << j << ", new e: " << e
-              << ", new |ivalue|: " << std::hex << std::setfill('0')
-              << std::setw(16)
-              << static_cast<long long>(ivalue < 0 ? -ivalue : ivalue)
-              << ", lower: " << std::hex << std::setfill('0') << std::setw(16)
-              << static_cast<long long>(lower) << "\n";
-  }
-
-  /* Set u.intv to have just the correct sign bit (rest zeros), and 'ivalue'
-     to now have the absolute value of the mantissa. */
+  /* Decide on rounding, with separate code for positive and negative values.
+     At this point, 'ivalue' has the signed mantissa bits plus two extra
+     rounding bits.  Bits in 'lower' and chunks below add to the magnitude
+     for positive values, but subtract from it for negative values. */
 
   if (ivalue >= 0) {
     u.intv = 0;
-  } else {
-    ivalue = -ivalue;
-    u.intv = XSUM_SIGN_MASK;
-  }
 
-  if (xsum_debug) {
-    if ((ivalue >> (XSUM_MANTISSA_BITS + 1)) != 1) {
-      std::abort();
+    if ((ivalue & 2) == 0) {
+      goto done_rounding;
     }
-  }
 
-  /* Round to nearest, with ties to even. At this point, 'ivalue' has the
-     absolute value of the number to be rounded, including an extra bit at
-     the bottom.  Bits below that are in 'lower' and in the chunks
-     indexed by 'j' and below.  Note that the bits in 'lower' and the chunks
-     below add to the magnitude of the remainder if the number is positive,
-     but subtract from this magnitude if the number is negative.
-     This code goes to done_rounding if it finds that just discarding lower
-     order bits is correct, and to round_away_from_zero if instead the
-     magnitude should be increased by one in the lowest bit. */
+    if ((ivalue & 1) != 0 || (ivalue & 4) != 0) {
+      goto round_away_from_zero;
+    }
 
-  /* extra bit is 0 */
-  if ((ivalue & 1) == 0) {
-    if (xsum_debug) {
-      std::cout << "round toward zero, since remainder magnitude is < 1/2\n";
+    if (lower == 0) {
+      while (j > 0) {
+        --j;
+        if (_lacc->sacc.chunk[j] != 0) {
+          lower = 1;
+          break;
+        }
+      }
+    }
+
+    if (lower != 0) {
+      goto round_away_from_zero;
     }
 
     goto done_rounding;
   }
 
-  /* number is positive */
-  if (u.intv == 0) {
-    /* low bit 1 (odd) */
-    if ((ivalue & 2) != 0) {
-      if (xsum_debug) {
-        std::cout
-            << "round away from zero, since magnitude >= 1/2, goes to even\n";
-      }
+  /* Check for a negative 'ivalue' whose negation needs one more bit from
+     'lower' to contain a full mantissa plus the two rounding bits. */
 
-      goto round_away_from_zero;
+  if (((-ivalue) & (static_cast<xsum_int>(1)
+                    << (XSUM_MANTISSA_BITS + 2))) == 0) {
+    xsum_schunk const pos = static_cast<xsum_schunk>(1)
+                            << (XSUM_LOW_MANTISSA_BITS - 1 - more);
+    ivalue *= 2;
+    if (lower & pos) {
+      ivalue += 1;
+      lower &= ~pos;
     }
-
-    if (lower != 0) {
-      if (xsum_debug) {
-        std::cout
-            << "round away from zero, since magnitude > 1/2 (from 'lower')\n";
-      }
-
-      goto round_away_from_zero;
-    }
+    --e;
   }
-  /* number is negative */
-  else {
-    /* low bit 0 (even) */
-    if ((ivalue & 2) == 0) {
-      if (xsum_debug) {
-        std::cout
-            << "round toward zero, since magnitude <= 1/2, goes to even\n";
+
+  u.intv = XSUM_SIGN_MASK;
+  ivalue = -ivalue;
+
+  if ((ivalue & 3) == 3) {
+    goto round_away_from_zero;
+  }
+
+  if ((ivalue & 3) <= 1 || (ivalue & 4) == 0) {
+    goto done_rounding;
+  }
+
+  if (lower == 0) {
+    while (j > 0) {
+      --j;
+      if (_lacc->sacc.chunk[j] != 0) {
+        lower = 1;
+        break;
       }
-
-      goto done_rounding;
-    }
-
-    if (lower != 0) {
-      if (xsum_debug) {
-        std::cout
-            << "round toward zero, since magnitude < 1/2 (from 'lower')\n";
-      }
-
-      goto done_rounding;
     }
   }
 
-  /* If we get here, 'lower' is zero.  We need to look at chunks lower down
-     to see if any are non-zero. */
-
-  while (j > 0) {
-    --j;
-
-    if (_lacc->sacc.chunk[j] != 0) {
-      lower = 1;
-      break;
-    }
+  if (lower != 0) {
+    goto done_rounding;
   }
 
-  /* number is positive, low bit 0 (even) */
-  if (u.intv == 0) {
-    if (lower != 0) {
-      if (xsum_debug) {
-        std::cout
-            << "round away from zero, since magnitude > 1/2 (low chunks)\n";
-      }
-
-      goto round_away_from_zero;
-    } else {
-      if (xsum_debug) {
-        std::cout << "round toward zero, magnitude == 1/2 (low chunks)\n";
-      }
-
-      goto done_rounding;
-    }
-  } else /* number is negative, low bit 1 (odd) */
-  {
-    if (lower != 0) {
-      if (xsum_debug) {
-        std::cout << "round toward zero, since magnitude < 1/2 (low chunks)\n";
-      }
-
-      goto done_rounding;
-    } else {
-      if (xsum_debug) {
-        std::cout << "round away from zero, magnitude == 1/2 (low chunks)\n";
-      }
-
-      goto round_away_from_zero;
-    }
-  }
+  goto round_away_from_zero;
 
 round_away_from_zero:
   /* Round away from zero, then check for carry having propagated out the
      top, and shift if so. */
-  ivalue += 2;
-  if (ivalue & (static_cast<xsum_int>(1) << (XSUM_MANTISSA_BITS + 2))) {
+  ivalue += 4;
+  if (ivalue & (static_cast<xsum_int>(1) << (XSUM_MANTISSA_BITS + 3))) {
     ivalue >>= 1;
     ++e;
   }
@@ -3735,7 +3652,7 @@ done_rounding:;
 
   /* Get rid of the bottom bit that was used to decide on rounding. */
 
-  ivalue >>= 1;
+  ivalue >>= 2;
 
   /* Adjust to the true exponent, accounting for where this chunk is. */
 
@@ -4978,11 +4895,126 @@ xsum_small_accumulator xsum_round_to_small<xsum_large_accumulator>(
   return sacc;
 }
 
+void xsum_large_to_small_accumulator(xsum_small_accumulator *const sacc,
+                                     xsum_large_accumulator *const lacc) {
+  *sacc = *xsum_round_to_small_ptr<xsum_large_accumulator>(lacc);
+}
+
+void xsum_small_to_large_accumulator(xsum_large_accumulator *const lacc,
+                                     xsum_small_accumulator const *const sacc) {
+  xsum_init<xsum_large_accumulator>(lacc);
+  lacc->sacc = *sacc;
+}
+
+xsum_flt xsum_small_div_unsigned(xsum_small_accumulator *const sacc,
+                                 unsigned const div) {
+  fpunion u;
+
+  if (sacc->NaN != 0) {
+    u.intv = sacc->NaN;
+    return u.fltv;
+  }
+
+  if (sacc->Inf != 0) {
+    u.intv = sacc->Inf;
+    return u.fltv;
+  }
+
+  xsum_small_accumulator tacc = *sacc;
+  int i = xsum_carry_propagate<xsum_small_accumulator>(&tacc);
+
+  if (div == 0) {
+    return tacc.chunk[i] > 0
+               ? std::numeric_limits<xsum_flt>::infinity()
+               : tacc.chunk[i] < 0
+                     ? -std::numeric_limits<xsum_flt>::infinity()
+                     : std::numeric_limits<xsum_flt>::quiet_NaN();
+  }
+
+  int sign = +1;
+  if (tacc.chunk[i] < 0) {
+    for (int j = 0; j < XSUM_SCHUNKS; ++j) {
+      tacc.chunk[j] = -tacc.chunk[j];
+    }
+    i = xsum_carry_propagate<xsum_small_accumulator>(&tacc);
+    sign = -1;
+  }
+
+  unsigned rem = 0;
+  for (int j = i; j >= 0; --j) {
+    xsum_uint const num =
+        (static_cast<xsum_uint>(rem) << XSUM_LOW_MANTISSA_BITS) +
+        static_cast<xsum_uint>(tacc.chunk[j]);
+    xsum_uint const quo = num / div;
+    rem = static_cast<unsigned>(num - quo * div);
+    tacc.chunk[j] = static_cast<xsum_schunk>(quo);
+  }
+
+  while (i > 0 && tacc.chunk[i] == 0) {
+    --i;
+  }
+
+  if (i > 1 || tacc.chunk[1] >=
+                    (static_cast<xsum_schunk>(1)
+                     << (XSUM_HIGH_MANTISSA_BITS + 2))) {
+    if (rem > 0) {
+      tacc.chunk[0] |= 1;
+    }
+  } else if (tacc.chunk[0] & 1) {
+    if (tacc.chunk[0] & 2) {
+      tacc.chunk[0] += 2;
+    } else if (rem > 0) {
+      tacc.chunk[0] += 2;
+    }
+
+    tacc.chunk[0] &= ~static_cast<xsum_schunk>(1);
+  }
+
+  return sign * xsum_small(&tacc).round();
+}
+
+xsum_flt xsum_small_div_int(xsum_small_accumulator *const sacc,
+                            int const div) {
+  if (div < 0) {
+    return -xsum_small_div_unsigned(sacc, 0u - static_cast<unsigned>(div));
+  }
+
+  return xsum_small_div_unsigned(sacc, static_cast<unsigned>(div));
+}
+
+xsum_flt xsum_large_div_unsigned(xsum_large_accumulator *const lacc,
+                                 unsigned const div) {
+  xsum_round_to_small_ptr<xsum_large_accumulator>(lacc);
+  return xsum_small_div_unsigned(&lacc->sacc, div);
+}
+
+xsum_flt xsum_large_div_int(xsum_large_accumulator *const lacc, int const div) {
+  xsum_round_to_small_ptr<xsum_large_accumulator>(lacc);
+  return xsum_small_div_int(&lacc->sacc, div);
+}
+
 template <>
 void xsum_add<xsum_large_accumulator>(xsum_large_accumulator *const lacc,
                                       xsum_large_accumulator *const value) {
   xsum_small_accumulator const *const sacc = xsum_round_to_small_ptr(value);
   xsum_add(lacc, sacc);
+}
+
+template <>
+void xsum_negate<xsum_small_accumulator>(xsum_small_accumulator *const sacc) {
+  for (int i = 0; i < XSUM_SCHUNKS; ++i) {
+    sacc->chunk[i] = -sacc->chunk[i];
+  }
+
+  if (sacc->Inf != 0) {
+    sacc->Inf ^= XSUM_SIGN_MASK;
+  }
+}
+
+template <>
+void xsum_negate<xsum_large_accumulator>(xsum_large_accumulator *const lacc) {
+  xsum_round_to_small_ptr(lacc);
+  xsum_negate(&lacc->sacc);
 }
 
 template <>
@@ -5671,7 +5703,7 @@ xsum_flt xsum_round<xsum_small_accumulator>(
 
   u.fltv = static_cast<xsum_flt>(ivalue);
   int e = (u.uintv >> XSUM_MANTISSA_BITS) & XSUM_EXP_MASK;
-  int more = 1 + XSUM_MANTISSA_BITS + XSUM_EXP_BIAS - e;
+  int more = 2 + XSUM_MANTISSA_BITS + XSUM_EXP_BIAS - e;
 
   /* Change 'ivalue' to put in 'more' bits from lower chunks into the bottom.
      Also set 'j' to the index of the lowest chunk from which these bits came,
@@ -5695,109 +5727,87 @@ xsum_flt xsum_round<xsum_small_accumulator>(
   ivalue += lower >> (XSUM_LOW_MANTISSA_BITS - more);
   lower &= (static_cast<xsum_schunk>(1) << (XSUM_LOW_MANTISSA_BITS - more)) - 1;
 
-  /* Check for a negative 'ivalue' that when negated doesn't contain a full
-     mantissa's worth of bits, plus one to help rounding.  If so, move one
-     more bit into 'ivalue' from 'lower' (and remove it from 'lower').
-     Note that more than one additional bit will not be required because
-     xsum_carry_propagate ensures the uppermost non-zero chunk is not -1. */
+  /* Decide on rounding, with separate code for positive and negative values.
+     At this point, 'ivalue' has the signed mantissa bits plus two extra
+     rounding bits.  Bits in 'lower' and chunks below add to the magnitude
+     for positive values, but subtract from it for negative values. */
 
-  if (ivalue < 0 && ((-ivalue) & (static_cast<xsum_int>(1)
-                                  << (XSUM_MANTISSA_BITS + 1))) == 0) {
-    int const pos = static_cast<xsum_schunk>(1)
-                    << (XSUM_LOW_MANTISSA_BITS - 1 - more);
-    /* note that left shift undefined if ivalue is negative */
+  if (ivalue >= 0) {
+    u.intv = 0;
+
+    if ((ivalue & 2) == 0) {
+      goto done_rounding;
+    }
+
+    if ((ivalue & 1) != 0 || (ivalue & 4) != 0) {
+      goto round_away_from_zero;
+    }
+
+    if (lower == 0) {
+      while (j > 0) {
+        --j;
+        if (sacc->chunk[j] != 0) {
+          lower = 1;
+          break;
+        }
+      }
+    }
+
+    if (lower != 0) {
+      goto round_away_from_zero;
+    }
+
+    goto done_rounding;
+  }
+
+  /* Check for a negative 'ivalue' whose negation needs one more bit from
+     'lower' to contain a full mantissa plus the two rounding bits. */
+
+  if (((-ivalue) & (static_cast<xsum_int>(1)
+                    << (XSUM_MANTISSA_BITS + 2))) == 0) {
+    xsum_schunk const pos = static_cast<xsum_schunk>(1)
+                            << (XSUM_LOW_MANTISSA_BITS - 1 - more);
     ivalue *= 2;
     if (lower & pos) {
-      ivalue |= 1;
+      ivalue += 1;
       lower &= ~pos;
     }
     --e;
   }
 
-  /* Set u.intv to have just the correct sign bit (rest zeros), and 'ivalue'
-     to now have the absolute value of the mantissa. */
+  u.intv = XSUM_SIGN_MASK;
+  ivalue = -ivalue;
 
-  if (ivalue >= 0) {
-    u.intv = 0;
-  } else {
-    ivalue = -ivalue;
-    u.intv = XSUM_SIGN_MASK;
+  if ((ivalue & 3) == 3) {
+    goto round_away_from_zero;
   }
 
-  if (xsum_debug && (ivalue >> (XSUM_MANTISSA_BITS + 1)) != 1) {
-    std::abort();
-  }
-
-  /* Round to nearest, with ties to even. At this point, 'ivalue' has the
-     absolute value of the number to be rounded, including an extra bit at
-     the bottom.  Bits below that are in 'lower' and in the chunks
-     indexed by 'j' and below.  Note that the bits in 'lower' and the chunks
-     below add to the magnitude of the remainder if the number is positive,
-     but subtract from this magnitude if the number is negative.
-
-     This code goes to done_rounding if it finds that just discarding lower
-     order bits is correct, and to round_away_from_zero if instead the
-     magnitude should be increased by one in the lowest bit. */
-
-  /* extra bit is 0 */
-  if ((ivalue & 1) == 0) {
+  if ((ivalue & 3) <= 1 || (ivalue & 4) == 0) {
     goto done_rounding;
   }
 
-  /* number is positive */
-  if (u.intv == 0) {
-    /* low bit 1 (odd) */
-    if ((ivalue & 2) != 0) {
-      goto round_away_from_zero;
-    }
-    if (lower != 0) {
-      goto round_away_from_zero;
-    }
-  }
-  /* number is negative */
-  else {
-    /* low bit 0 (even) */
-    if ((ivalue & 2) == 0) {
-      goto done_rounding;
-    }
-    if (lower != 0) {
-      goto done_rounding;
+  if (lower == 0) {
+    while (j > 0) {
+      --j;
+      if (sacc->chunk[j] != 0) {
+        lower = 1;
+        break;
+      }
     }
   }
 
-  /* If we get here, 'lower' is zero.  We need to look at chunks lower down
-     to see if any are non-zero. */
-  while (j > 0) {
-    --j;
-    if (sacc->chunk[j] != 0) {
-      lower = 1;
-      break;
-    }
+  if (lower != 0) {
+    goto done_rounding;
   }
 
-  /* number is positive, low bit 0 (even) */
-  if (u.intv == 0) {
-    if (lower != 0) {
-      goto round_away_from_zero;
-    } else {
-      goto done_rounding;
-    }
-  }
-  /* number is negative, low bit 1 (odd) */
-  else {
-    if (lower != 0) {
-      goto done_rounding;
-    } else {
-      goto round_away_from_zero;
-    }
-  }
+  goto round_away_from_zero;
 
 round_away_from_zero:
 
   /* Round away from zero, then check for carry having propagated out the
      top, and shift if so. */
-  ivalue += 2;
-  if (ivalue & (static_cast<xsum_int>(1) << (XSUM_MANTISSA_BITS + 2))) {
+  ivalue += 4;
+  if (ivalue & (static_cast<xsum_int>(1) << (XSUM_MANTISSA_BITS + 3))) {
     ivalue >>= 1;
     ++e;
   }
@@ -5805,7 +5815,7 @@ round_away_from_zero:
 done_rounding:;
 
   /* Get rid of the bottom bit that was used to decide on rounding. */
-  ivalue >>= 1;
+  ivalue >>= 2;
 
   /* Adjust to the true exponent, accounting for where this chunk is. */
   e += (i << XSUM_LOW_EXP_BITS) - XSUM_EXP_BIAS - XSUM_MANTISSA_BITS;

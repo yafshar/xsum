@@ -1,7 +1,6 @@
 # Fast Exact Summation Using Small and Large Superaccumulators (XSUM)
 
 [![Python package](https://github.com/yafshar/xsum/workflows/Python%20package/badge.svg)](https://github.com/yafshar/xsum/actions)
-[![Windows Build status](https://ci.appveyor.com/api/projects/status/kd1sksf5t3kdsibn/branch/master?svg=true)](https://ci.appveyor.com/project/yafshar/xsum/branch/master)
 [![PyPI](https://img.shields.io/pypi/v/xsum.svg)](https://pypi.python.org/pypi/xsum)
 [![Anaconda-Server Badge](https://img.shields.io/conda/vn/conda-forge/xsum.svg)](https://anaconda.org/conda-forge/xsum)
 [![License](https://img.shields.io/badge/license-LGPL--v2-blue)](LICENSE)
@@ -488,7 +487,7 @@ Python code.
 
 ### Python requirements
 
-You need Python 3.6 or later to run `xsum`. You can have multiple Python
+You need Python 3.10 or later to run `xsum`. You can have multiple Python
 versions (2.x and 3.x) installed on the same system without problems.
 
 To install Python 3 for different Linux flavors, macOS and Windows, packages
@@ -639,7 +638,7 @@ Exact sum = 4.50000000000000000000
 
 ## Contributing
 
-Copyright (c) 2020, Regents of the University of Minnesota.\
+Copyright (c) 2020-2026, Regents of the University of Minnesota.\
 All rights reserved.
 
 Contributors:\

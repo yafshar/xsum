@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020, Regents of the University of Minnesota.
+# Copyright (c) 2020-2026, Regents of the University of Minnesota.
 # All rights reserved.
 #
 # Contributors:
@@ -261,6 +261,121 @@ class XSUMModule:
         self.assertTrue(result(s, 0, 0, msg))
         self.assertTrue(result(l, 0, 0, msg))
 
+    def test_negate(self):
+        """A2: NEGATE TESTS"""
+
+        msg = "A2: NEGATE TESTS"
+        terms = ten_term[4]
+        s = terms[10]
+
+        sacc = xsum_small_accumulator()
+        xsum_add(sacc, terms[:-1])
+        xsum_negate(sacc)
+        self.assertTrue(result(sacc, -s, 0, msg))
+        xsum_negate(sacc)
+        self.assertTrue(result(sacc, s, 1, msg))
+
+        lacc = xsum_large_accumulator()
+        xsum_add(lacc, terms[:-1])
+        xsum_negate(lacc)
+        self.assertTrue(result(lacc, -s, 2, msg))
+        xsum_negate(lacc)
+        self.assertTrue(result(lacc, s, 3, msg))
+
+        small = xsum_small()
+        small.add(terms[:-1])
+        small.negate()
+        self.assertTrue(result(small, -s, 4, msg))
+        small.negate()
+        self.assertTrue(result(small, s, 5, msg))
+
+        large = xsum_large()
+        large.add(terms[:-1])
+        large.negate()
+        self.assertTrue(result(large, -s, 6, msg))
+        large.negate()
+        self.assertTrue(result(large, s, 7, msg))
+
+        sinf = xsum_small_accumulator()
+        xsum_add(sinf, np.inf)
+        xsum_negate(sinf)
+        self.assertTrue(result(sinf, -np.inf, 8, msg))
+
+        linf = xsum_large_accumulator()
+        xsum_add(linf, -np.inf)
+        xsum_negate(linf)
+        self.assertTrue(result(linf, np.inf, 9, msg))
+
+    def test_conversion(self):
+        """A3: CONVERSION TESTS"""
+
+        msg = "A3: CONVERSION TESTS"
+        terms = ten_term[4]
+        s = terms[10]
+
+        lacc = xsum_large_accumulator()
+        xsum_add(lacc, terms[:-1])
+
+        sacc = xsum_small_accumulator()
+        xsum_add(sacc, np.inf)
+        xsum_large_to_small_accumulator(sacc, lacc)
+        self.assertTrue(result(sacc, s, 0, msg))
+        self.assertTrue(result(lacc, s, 1, msg))
+
+        lacc_from_small = xsum_large_accumulator()
+        xsum_add(lacc_from_small, -np.inf)
+        xsum_small_to_large_accumulator(lacc_from_small, sacc)
+        self.assertTrue(result(lacc_from_small, s, 2, msg))
+        self.assertTrue(result(sacc, s, 3, msg))
+
+    def test_integer_division(self):
+        """A4: INTEGER DIVISION TESTS"""
+
+        terms = ten_term[4]
+        s = terms[10]
+        q = s / 11.0
+
+        sacc = xsum_small_accumulator()
+        xsum_add(sacc, terms[:-1])
+        self.assertEqual(xsum_small_div_unsigned(sacc, 11), q)
+        self.assertEqual(xsum_small_div_int(sacc, -11), -q)
+        self.assertTrue(result(sacc, s, 0, "A4: INTEGER DIVISION TESTS"))
+
+        lacc = xsum_large_accumulator()
+        xsum_add(lacc, terms[:-1])
+        self.assertEqual(xsum_large_div_unsigned(lacc, 11), q)
+        self.assertEqual(xsum_large_div_int(lacc, -11), -q)
+        self.assertTrue(result(lacc, s, 1, "A4: INTEGER DIVISION TESTS"))
+
+        small = xsum_small()
+        small.add(terms[:-1])
+        self.assertEqual(small.div_unsigned(11), q)
+        self.assertEqual(small.div_int(-11), -q)
+
+        large = xsum_large()
+        large.add(terms[:-1])
+        self.assertEqual(large.div_unsigned(11), q)
+        self.assertEqual(large.div_int(-11), -q)
+
+        positive = xsum_small_accumulator()
+        xsum_add(positive, 2.0)
+        self.assertEqual(xsum_small_div_unsigned(positive, 0), np.inf)
+
+        negative = xsum_small_accumulator()
+        xsum_add(negative, -2.0)
+        self.assertEqual(xsum_small_div_unsigned(negative, 0), -np.inf)
+
+        zero = xsum_small_accumulator()
+        self.assertTrue(np.isnan(xsum_small_div_unsigned(zero, 0)))
+
+        inf = xsum_small_accumulator()
+        xsum_add(inf, np.inf)
+        self.assertEqual(xsum_small_div_unsigned(inf, 7), np.inf)
+
+        nan = xsum_small_accumulator()
+        xsum_add(nan, np.nan)
+        self.assertTrue(np.isnan(xsum_small_div_unsigned(nan, 7)))
+
     def test_one_term(self):
         """B: ONE TERM TESTS"""
 
@@ -481,6 +596,87 @@ class XSUMModule:
             lacc = xsum_large()
             lacc.add(a)
             self.assertTrue(result(lacc, s, i, msg))
+
+    def test_small_class_vector_methods(self):
+        """H: SMALL CLASS VECTOR METHOD TESTS"""
+
+        msg = "H: SMALL CLASS VECTOR METHOD TESTS"
+        n = 2101
+
+        idx = np.arange(n, dtype=np.float64)
+        sign = np.where((idx.astype(np.int64) % 2) == 0, 1.0, -1.0)
+        vec1 = sign * (1.0 + (idx.astype(np.int64) % 17) * 0.125)
+        vec2 = ((idx.astype(np.int64) % 5) - 2) * 0.25 + 1.0 / (idx + 1.0)
+
+        vec1[101] = 1.0e150
+        vec2[101] = 1.0e-150
+        vec1[202] = -1.0e150
+        vec2[202] = 1.0e-150
+
+        sum_manual = xsum_small()
+        sqnorm_manual = xsum_small()
+        dot_manual = xsum_small()
+
+        for i in range(n):
+            sum_manual.add(vec1[i])
+            sqnorm_manual.add(vec1[i] * vec1[i])
+            dot_manual.add(vec1[i] * vec2[i])
+
+        sum_result = sum_manual.round()
+        sqnorm_result = sqnorm_manual.round()
+        dot_result = dot_manual.round()
+
+        sum_class = xsum_small()
+        sum_class.add(vec1)
+        self.assertTrue(result(sum_class, sum_result, 0, msg))
+
+        sum_template = xsum_small_accumulator()
+        xsum_add(sum_template, vec1)
+        self.assertTrue(result(sum_template, sum_result, 1, msg))
+
+        sqnorm_class = xsum_small()
+        sqnorm_class.add_sqnorm(vec1)
+        self.assertTrue(result(sqnorm_class, sqnorm_result, 2, msg))
+
+        sqnorm_template = xsum_small_accumulator()
+        xsum_add_sqnorm(sqnorm_template, vec1)
+        self.assertTrue(result(sqnorm_template, sqnorm_result, 3, msg))
+
+        dot_class = xsum_small()
+        dot_class.add_dot(vec1, vec2)
+        self.assertTrue(result(dot_class, dot_result, 4, msg))
+
+        dot_template = xsum_small_accumulator()
+        xsum_add_dot(dot_template, vec1, vec2)
+        self.assertTrue(result(dot_template, dot_result, 5, msg))
+
+    def test_odd_length_dot_product(self):
+        """I: ODD LENGTH DOT PRODUCT TESTS"""
+
+        msg = "I: ODD LENGTH DOT PRODUCT TESTS"
+        vec1 = np.array([1.0e100, -1.0e100, 0.25, -0.5, 7.0])
+        vec2 = np.array([1.0, 1.0, 4.0, -2.0, 3.0])
+
+        expected = xsum_small()
+        for i in range(len(vec1)):
+            expected.add(vec1[i] * vec2[i])
+        dot = expected.round()
+
+        sacc = xsum_small_accumulator()
+        xsum_add_dot(sacc, vec1, vec2)
+        self.assertTrue(result(sacc, dot, 0, msg))
+
+        lacc = xsum_large_accumulator()
+        xsum_add_dot(lacc, vec1, vec2)
+        self.assertTrue(result(lacc, dot, 1, msg))
+
+        small = xsum_small()
+        small.add_dot(vec1, vec2)
+        self.assertTrue(result(small, dot, 2, msg))
+
+        large = xsum_large()
+        large.add_dot(vec1, vec2)
+        self.assertTrue(result(large, dot, 3, msg))
 
 
 class TestXSUMModule(XSUMModule, unittest.TestCase):
