@@ -83,6 +83,7 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -296,6 +297,12 @@ class xsum_small {
   /*! Negate the value in a small accumulator. */
   void negate();
 
+  /*! Return the result of dividing a small accumulator by an unsigned int. */
+  xsum_flt div_unsigned(unsigned const div);
+
+  /*! Return the result of dividing a small accumulator by a signed int. */
+  xsum_flt div_int(int const div);
+
   /*!
    * \brief Return the results of rounding a superaccumulator.
    *
@@ -451,6 +458,12 @@ class xsum_large {
 
   /* Negate the value in a large accumulator. */
   void negate();
+
+  /* Return the result of dividing a large accumulator by an unsigned int. */
+  xsum_flt div_unsigned(unsigned const div);
+
+  /* Return the result of dividing a large accumulator by a signed int. */
+  xsum_flt div_int(int const div);
 
   /*
    * RETURN THE RESULT OF ROUNDING A SMALL ACCUMULATOR.  The rounding mode
@@ -661,6 +674,16 @@ void xsum_add_dot(accumulatorType *const acc, std::vector<xsum_flt> const &vec1,
 
 template <typename accumulatorType>
 void xsum_negate(accumulatorType *const acc);
+
+xsum_flt xsum_small_div_unsigned(xsum_small_accumulator *const sacc,
+                                 unsigned const div);
+
+xsum_flt xsum_small_div_int(xsum_small_accumulator *const sacc, int const div);
+
+xsum_flt xsum_large_div_unsigned(xsum_large_accumulator *const lacc,
+                                 unsigned const div);
+
+xsum_flt xsum_large_div_int(xsum_large_accumulator *const lacc, int const div);
 
 template <typename accumulatorType>
 xsum_flt xsum_round(accumulatorType *const acc);
@@ -949,6 +972,14 @@ void xsum_small::negate() {
   if (_sacc->Inf != 0) {
     _sacc->Inf ^= XSUM_SIGN_MASK;
   }
+}
+
+xsum_flt xsum_small::div_unsigned(unsigned const div) {
+  return xsum_small_div_unsigned(_sacc.get(), div);
+}
+
+xsum_flt xsum_small::div_int(int const div) {
+  return xsum_small_div_int(_sacc.get(), div);
 }
 
 template <typename T>
@@ -2476,6 +2507,14 @@ void xsum_large::negate() {
   if (_lacc->sacc.Inf != 0) {
     _lacc->sacc.Inf ^= XSUM_SIGN_MASK;
   }
+}
+
+xsum_flt xsum_large::div_unsigned(unsigned const div) {
+  return xsum_large_div_unsigned(_lacc.get(), div);
+}
+
+xsum_flt xsum_large::div_int(int const div) {
+  return xsum_large_div_int(_lacc.get(), div);
 }
 
 xsum_flt xsum_large::round() {
@@ -4865,6 +4904,93 @@ void xsum_small_to_large_accumulator(xsum_large_accumulator *const lacc,
                                      xsum_small_accumulator const *const sacc) {
   xsum_init<xsum_large_accumulator>(lacc);
   lacc->sacc = *sacc;
+}
+
+xsum_flt xsum_small_div_unsigned(xsum_small_accumulator *const sacc,
+                                 unsigned const div) {
+  fpunion u;
+
+  if (sacc->NaN != 0) {
+    u.intv = sacc->NaN;
+    return u.fltv;
+  }
+
+  if (sacc->Inf != 0) {
+    u.intv = sacc->Inf;
+    return u.fltv;
+  }
+
+  xsum_small_accumulator tacc = *sacc;
+  int i = xsum_carry_propagate<xsum_small_accumulator>(&tacc);
+
+  if (div == 0) {
+    return tacc.chunk[i] > 0
+               ? std::numeric_limits<xsum_flt>::infinity()
+               : tacc.chunk[i] < 0
+                     ? -std::numeric_limits<xsum_flt>::infinity()
+                     : std::numeric_limits<xsum_flt>::quiet_NaN();
+  }
+
+  int sign = +1;
+  if (tacc.chunk[i] < 0) {
+    for (int j = 0; j < XSUM_SCHUNKS; ++j) {
+      tacc.chunk[j] = -tacc.chunk[j];
+    }
+    i = xsum_carry_propagate<xsum_small_accumulator>(&tacc);
+    sign = -1;
+  }
+
+  unsigned rem = 0;
+  for (int j = i; j >= 0; --j) {
+    xsum_uint const num =
+        (static_cast<xsum_uint>(rem) << XSUM_LOW_MANTISSA_BITS) +
+        static_cast<xsum_uint>(tacc.chunk[j]);
+    xsum_uint const quo = num / div;
+    rem = static_cast<unsigned>(num - quo * div);
+    tacc.chunk[j] = static_cast<xsum_schunk>(quo);
+  }
+
+  while (i > 0 && tacc.chunk[i] == 0) {
+    --i;
+  }
+
+  if (i > 1 || tacc.chunk[1] >=
+                    (static_cast<xsum_schunk>(1)
+                     << (XSUM_HIGH_MANTISSA_BITS + 2))) {
+    if (rem > 0) {
+      tacc.chunk[0] |= 1;
+    }
+  } else if (tacc.chunk[0] & 1) {
+    if (tacc.chunk[0] & 2) {
+      tacc.chunk[0] += 2;
+    } else if (rem > 0) {
+      tacc.chunk[0] += 2;
+    }
+
+    tacc.chunk[0] &= ~static_cast<xsum_schunk>(1);
+  }
+
+  return sign * xsum_small(&tacc).round();
+}
+
+xsum_flt xsum_small_div_int(xsum_small_accumulator *const sacc,
+                            int const div) {
+  if (div < 0) {
+    return -xsum_small_div_unsigned(sacc, 0u - static_cast<unsigned>(div));
+  }
+
+  return xsum_small_div_unsigned(sacc, static_cast<unsigned>(div));
+}
+
+xsum_flt xsum_large_div_unsigned(xsum_large_accumulator *const lacc,
+                                 unsigned const div) {
+  xsum_round_to_small_ptr<xsum_large_accumulator>(lacc);
+  return xsum_small_div_unsigned(&lacc->sacc, div);
+}
+
+xsum_flt xsum_large_div_int(xsum_large_accumulator *const lacc, int const div) {
+  xsum_round_to_small_ptr<xsum_large_accumulator>(lacc);
+  return xsum_small_div_int(&lacc->sacc, div);
 }
 
 template <>

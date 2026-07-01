@@ -328,6 +328,54 @@ class XSUMModule:
         self.assertTrue(result(lacc_from_small, s, 2, msg))
         self.assertTrue(result(sacc, s, 3, msg))
 
+    def test_integer_division(self):
+        """A4: INTEGER DIVISION TESTS"""
+
+        terms = ten_term[4]
+        s = terms[10]
+        q = s / 11.0
+
+        sacc = xsum_small_accumulator()
+        xsum_add(sacc, terms[:-1])
+        self.assertEqual(xsum_small_div_unsigned(sacc, 11), q)
+        self.assertEqual(xsum_small_div_int(sacc, -11), -q)
+        self.assertTrue(result(sacc, s, 0, "A4: INTEGER DIVISION TESTS"))
+
+        lacc = xsum_large_accumulator()
+        xsum_add(lacc, terms[:-1])
+        self.assertEqual(xsum_large_div_unsigned(lacc, 11), q)
+        self.assertEqual(xsum_large_div_int(lacc, -11), -q)
+        self.assertTrue(result(lacc, s, 1, "A4: INTEGER DIVISION TESTS"))
+
+        small = xsum_small()
+        small.add(terms[:-1])
+        self.assertEqual(small.div_unsigned(11), q)
+        self.assertEqual(small.div_int(-11), -q)
+
+        large = xsum_large()
+        large.add(terms[:-1])
+        self.assertEqual(large.div_unsigned(11), q)
+        self.assertEqual(large.div_int(-11), -q)
+
+        positive = xsum_small_accumulator()
+        xsum_add(positive, 2.0)
+        self.assertEqual(xsum_small_div_unsigned(positive, 0), np.inf)
+
+        negative = xsum_small_accumulator()
+        xsum_add(negative, -2.0)
+        self.assertEqual(xsum_small_div_unsigned(negative, 0), -np.inf)
+
+        zero = xsum_small_accumulator()
+        self.assertTrue(np.isnan(xsum_small_div_unsigned(zero, 0)))
+
+        inf = xsum_small_accumulator()
+        xsum_add(inf, np.inf)
+        self.assertEqual(xsum_small_div_unsigned(inf, 7), np.inf)
+
+        nan = xsum_small_accumulator()
+        xsum_add(nan, np.nan)
+        self.assertTrue(np.isnan(xsum_small_div_unsigned(nan, 7)))
+
     def test_one_term(self):
         """B: ONE TERM TESTS"""
 

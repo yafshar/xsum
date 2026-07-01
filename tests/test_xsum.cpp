@@ -377,6 +377,75 @@ int main(int argc, char **argv) {
     result(&sacc, s, 3);
   }
 
+  std::printf("\nA4: INTEGER DIVISION TESTS\n");
+
+  {
+    auto check_small_div = [](double const r, double const s, int const i) {
+      ++total_small_test;
+      if (different(r, s)) {
+        ++small_test_fails;
+        std::printf(" \n-- TEST %d\n", i);
+        std::printf("   ANSWER: %.16le\n", s);
+        std::printf("small div: Result incorrect %.16le != %.16le\n", r, s);
+      }
+    };
+
+    auto check_large_div = [](double const r, double const s, int const i) {
+      ++total_large_test;
+      if (different(r, s)) {
+        ++large_test_fails;
+        std::printf(" \n-- TEST %d\n", i);
+        std::printf("   ANSWER: %.16le\n", s);
+        std::printf("large div: Result incorrect %.16le != %.16le\n", r, s);
+      }
+    };
+
+    int const base = 4 * 11;
+    double const s = ten_term[base + 10];
+    double const q = s / 11.0;
+
+    xsum_small_accumulator sacc;
+    xsum_add(&sacc, ten_term + base, 10);
+    check_small_div(xsum_small_div_unsigned(&sacc, 11), q, 0);
+    check_small_div(xsum_small_div_int(&sacc, -11), -q, 1);
+    result(&sacc, s, 2);
+
+    xsum_large_accumulator lacc;
+    xsum_add(&lacc, ten_term + base, 10);
+    check_large_div(xsum_large_div_unsigned(&lacc, 11), q, 3);
+    check_large_div(xsum_large_div_int(&lacc, -11), -q, 4);
+    result(&lacc, s, 5);
+
+    xsum_small small;
+    small.add(ten_term + base, 10);
+    check_small_div(small.div_unsigned(11), q, 6);
+    check_small_div(small.div_int(-11), -q, 7);
+
+    xsum_large large;
+    large.add(ten_term + base, 10);
+    check_large_div(large.div_unsigned(11), q, 8);
+    check_large_div(large.div_int(-11), -q, 9);
+
+    xsum_small_accumulator positive;
+    xsum_add(&positive, 2.0);
+    check_small_div(xsum_small_div_unsigned(&positive, 0), 1.0 / 0.0, 10);
+
+    xsum_small_accumulator negative;
+    xsum_add(&negative, -2.0);
+    check_small_div(xsum_small_div_unsigned(&negative, 0), -1.0 / 0.0, 11);
+
+    xsum_small_accumulator zero;
+    check_small_div(xsum_small_div_unsigned(&zero, 0), 0.0 / 0.0, 12);
+
+    xsum_small_accumulator inf;
+    xsum_add(&inf, 1.0 / 0.0);
+    check_small_div(xsum_small_div_unsigned(&inf, 7), 1.0 / 0.0, 13);
+
+    xsum_small_accumulator nan;
+    xsum_add(&nan, 0.0 / 0.0);
+    check_small_div(xsum_small_div_unsigned(&nan, 7), 0.0 / 0.0, 14);
+  }
+
   std::printf("\nB: ONE TERM TESTS\n");
 
   for (int i = 0; i < one_term_size; ++i) {

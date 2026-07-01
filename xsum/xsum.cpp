@@ -257,6 +257,18 @@ PYBIND11_MODULE(xsum, m) {
   m.def("xsum_small_to_large_accumulator", &xsum_small_to_large_accumulator,
         "Transfer a small superaccumulator to a large superaccumulator.");
 
+  m.def("xsum_small_div_unsigned", &xsum_small_div_unsigned,
+        "Return the result of dividing a small superaccumulator by an unsigned integer.");
+
+  m.def("xsum_small_div_int", &xsum_small_div_int,
+        "Return the result of dividing a small superaccumulator by a signed integer.");
+
+  m.def("xsum_large_div_unsigned", &xsum_large_div_unsigned,
+        "Return the result of dividing a large superaccumulator by an unsigned integer.");
+
+  m.def("xsum_large_div_int", &xsum_large_div_int,
+        "Return the result of dividing a large superaccumulator by a signed integer.");
+
   m.def("print_binary", &print_binary<double>,
         "Print double precision floating point value in binary.");
 
@@ -296,6 +308,10 @@ PYBIND11_MODULE(xsum, m) {
            "Add dot product of two vectors of values to the superaccumulator.")
       .def("negate", &py_xsum_small::xsum_small::negate,
            "Negate the value in the superaccumulator.")
+      .def("div_unsigned", &py_xsum_small::xsum_small::div_unsigned,
+           "Return the result of dividing the superaccumulator by an unsigned integer.")
+      .def("div_int", &py_xsum_small::xsum_small::div_int,
+           "Return the result of dividing the superaccumulator by a signed integer.")
       .def("round", &py_xsum_small::xsum_small::round,
            "Return the results of rounding the superaccumulator.")
       .def("chunks_used", &py_xsum_small::xsum_small::chunks_used,
@@ -341,6 +357,10 @@ PYBIND11_MODULE(xsum, m) {
            "Add dot product of two vectors of values to the superaccumulator.")
       .def("negate", &py_xsum_large::xsum_large::negate,
            "Negate the value in the superaccumulator.")
+      .def("div_unsigned", &py_xsum_large::xsum_large::div_unsigned,
+           "Return the result of dividing the superaccumulator by an unsigned integer.")
+      .def("div_int", &py_xsum_large::xsum_large::div_int,
+           "Return the result of dividing the superaccumulator by a signed integer.")
       .def("round", &py_xsum_large::xsum_large::round,
            "Return the results of rounding the superaccumulator.")
       .def("round_to_small",
