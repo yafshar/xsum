@@ -310,6 +310,51 @@ int main(int argc, char **argv) {
     result(lacc.get(), 0, 0);
   }
 
+  std::printf("\nA2: NEGATE TESTS\n");
+
+  {
+    int const base = 4 * 11;
+    double const s = ten_term[base + 10];
+
+    xsum_small_accumulator sacc;
+    xsum_add(&sacc, ten_term + base, 10);
+    xsum_negate(&sacc);
+    result(&sacc, -s, 0);
+    xsum_negate(&sacc);
+    result(&sacc, s, 1);
+
+    xsum_large_accumulator lacc;
+    xsum_add(&lacc, ten_term + base, 10);
+    xsum_negate(&lacc);
+    result(&lacc, -s, 2);
+    xsum_negate(&lacc);
+    result(&lacc, s, 3);
+
+    xsum_small small;
+    small.add(ten_term + base, 10);
+    small.negate();
+    result(small.get(), -s, 4);
+    small.negate();
+    result(small.get(), s, 5);
+
+    xsum_large large;
+    large.add(ten_term + base, 10);
+    large.negate();
+    result(large.get(), -s, 6);
+    large.negate();
+    result(large.get(), s, 7);
+
+    xsum_small_accumulator sinf;
+    xsum_add(&sinf, 1.0 / 0.0);
+    xsum_negate(&sinf);
+    result(&sinf, -1.0 / 0.0, 8);
+
+    xsum_large_accumulator linf;
+    xsum_add(&linf, -1.0 / 0.0);
+    xsum_negate(&linf);
+    result(&linf, 1.0 / 0.0, 9);
+  }
+
   std::printf("\nB: ONE TERM TESTS\n");
 
   for (int i = 0; i < one_term_size; ++i) {

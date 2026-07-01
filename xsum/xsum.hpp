@@ -293,6 +293,9 @@ class xsum_small {
   void add_dot(std::vector<xsum_flt> const &vec1,
                std::vector<xsum_flt> const &vec2);
 
+  /*! Negate the value in a small accumulator. */
+  void negate();
+
   /*!
    * \brief Return the results of rounding a superaccumulator.
    *
@@ -445,6 +448,9 @@ class xsum_large {
   void add_dot(xsum_flt const *vec1, xsum_flt const *vec2, xsum_length const n);
   void add_dot(std::vector<xsum_flt> const &vec1,
                std::vector<xsum_flt> const &vec2);
+
+  /* Negate the value in a large accumulator. */
+  void negate();
 
   /*
    * RETURN THE RESULT OF ROUNDING A SMALL ACCUMULATOR.  The rounding mode
@@ -652,6 +658,9 @@ void xsum_add_dot(accumulatorType *const acc, xsum_flt const *const vec1,
 template <typename accumulatorType>
 void xsum_add_dot(accumulatorType *const acc, std::vector<xsum_flt> const &vec1,
                   std::vector<xsum_flt> const &vec2);
+
+template <typename accumulatorType>
+void xsum_negate(accumulatorType *const acc);
 
 template <typename accumulatorType>
 xsum_flt xsum_round(accumulatorType *const acc);
@@ -924,6 +933,16 @@ void xsum_small::add_dot(std::vector<xsum_flt> const &v1,
   xsum_flt const f2 = *vec2;
   xsum_flt const g = f1 * f2;
   add(g);
+}
+
+void xsum_small::negate() {
+  for (int i = 0; i < XSUM_SCHUNKS; ++i) {
+    _sacc->chunk[i] = -_sacc->chunk[i];
+  }
+
+  if (_sacc->Inf != 0) {
+    _sacc->Inf ^= XSUM_SIGN_MASK;
+  }
 }
 
 template <typename T>
@@ -2439,6 +2458,17 @@ void xsum_large::add_dot(std::vector<xsum_flt> const &vec1,
     if (m == 0) {
       break;
     }
+  }
+}
+
+void xsum_large::negate() {
+  round_to_small_ptr();
+  for (int i = 0; i < XSUM_SCHUNKS; ++i) {
+    _lacc->sacc.chunk[i] = -_lacc->sacc.chunk[i];
+  }
+
+  if (_lacc->sacc.Inf != 0) {
+    _lacc->sacc.Inf ^= XSUM_SIGN_MASK;
   }
 }
 
@@ -4825,6 +4855,23 @@ void xsum_add<xsum_large_accumulator>(xsum_large_accumulator *const lacc,
                                       xsum_large_accumulator *const value) {
   xsum_small_accumulator const *const sacc = xsum_round_to_small_ptr(value);
   xsum_add(lacc, sacc);
+}
+
+template <>
+void xsum_negate<xsum_small_accumulator>(xsum_small_accumulator *const sacc) {
+  for (int i = 0; i < XSUM_SCHUNKS; ++i) {
+    sacc->chunk[i] = -sacc->chunk[i];
+  }
+
+  if (sacc->Inf != 0) {
+    sacc->Inf ^= XSUM_SIGN_MASK;
+  }
+}
+
+template <>
+void xsum_negate<xsum_large_accumulator>(xsum_large_accumulator *const lacc) {
+  xsum_round_to_small_ptr(lacc);
+  xsum_negate(&lacc->sacc);
 }
 
 template <>

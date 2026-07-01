@@ -261,6 +261,51 @@ class XSUMModule:
         self.assertTrue(result(s, 0, 0, msg))
         self.assertTrue(result(l, 0, 0, msg))
 
+    def test_negate(self):
+        """A2: NEGATE TESTS"""
+
+        msg = "A2: NEGATE TESTS"
+        terms = ten_term[4]
+        s = terms[10]
+
+        sacc = xsum_small_accumulator()
+        xsum_add(sacc, terms[:-1])
+        xsum_negate(sacc)
+        self.assertTrue(result(sacc, -s, 0, msg))
+        xsum_negate(sacc)
+        self.assertTrue(result(sacc, s, 1, msg))
+
+        lacc = xsum_large_accumulator()
+        xsum_add(lacc, terms[:-1])
+        xsum_negate(lacc)
+        self.assertTrue(result(lacc, -s, 2, msg))
+        xsum_negate(lacc)
+        self.assertTrue(result(lacc, s, 3, msg))
+
+        small = xsum_small()
+        small.add(terms[:-1])
+        small.negate()
+        self.assertTrue(result(small, -s, 4, msg))
+        small.negate()
+        self.assertTrue(result(small, s, 5, msg))
+
+        large = xsum_large()
+        large.add(terms[:-1])
+        large.negate()
+        self.assertTrue(result(large, -s, 6, msg))
+        large.negate()
+        self.assertTrue(result(large, s, 7, msg))
+
+        sinf = xsum_small_accumulator()
+        xsum_add(sinf, np.inf)
+        xsum_negate(sinf)
+        self.assertTrue(result(sinf, -np.inf, 8, msg))
+
+        linf = xsum_large_accumulator()
+        xsum_add(linf, -np.inf)
+        xsum_negate(linf)
+        self.assertTrue(result(linf, np.inf, 9, msg))
+
     def test_one_term(self):
         """B: ONE TERM TESTS"""
 

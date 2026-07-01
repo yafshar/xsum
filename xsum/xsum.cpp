@@ -178,10 +178,10 @@ PYBIND11_MODULE(xsum, m) {
       .def(pybind11::init<>());
 
   m.def("xsum_init", &xsum_init<xsum_small_accumulator>,
-        "Initilize the xsum_small_accumulator object");
+        "Initialize the xsum_small_accumulator object");
 
   m.def("xsum_init", &xsum_init<xsum_large_accumulator>,
-        "Initilize the xsum_large_accumulator object");
+        "Initialize the xsum_large_accumulator object");
 
   m.def("xsum_add",
         (void (*)(xsum_small_accumulator *const, xsum_flt const)) &
@@ -235,6 +235,12 @@ PYBIND11_MODULE(xsum, m) {
   m.def("xsum_add_dot", &py_xsum_add_dot<xsum_large_accumulator>,
         "Add dot product of two vectors of values to the superaccumulator.");
 
+  m.def("xsum_negate", &xsum_negate<xsum_small_accumulator>,
+        "Negate the value in a small superaccumulator.");
+
+  m.def("xsum_negate", &xsum_negate<xsum_large_accumulator>,
+        "Negate the value in a large superaccumulator.");
+
   m.def("xsum_round", &xsum_round<xsum_small_accumulator>,
         "Return the results of rounding the superaccumulator.");
 
@@ -255,7 +261,7 @@ PYBIND11_MODULE(xsum, m) {
       .def("reset", &py_xsum_small::xsum_small::reset,
            "Replace the xsum_small_accumulator object")
       .def("init", &py_xsum_small::xsum_small::init,
-           "Initilize the xsum_small_accumulator object")
+           "Initialize the xsum_small_accumulator object")
       .def("add",
            (void (py_xsum_small::xsum_small::*)(xsum_flt const)) &
                py_xsum_small::xsum_small::add,
@@ -282,6 +288,8 @@ PYBIND11_MODULE(xsum, m) {
            "Add a squared norm of vector of values to the superaccumulator.")
       .def("add_dot", &py_xsum_small::add_dot,
            "Add dot product of two vectors of values to the superaccumulator.")
+      .def("negate", &py_xsum_small::xsum_small::negate,
+           "Negate the value in the superaccumulator.")
       .def("round", &py_xsum_small::xsum_small::round,
            "Return the results of rounding the superaccumulator.")
       .def("chunks_used", &py_xsum_small::xsum_small::chunks_used,
@@ -298,7 +306,7 @@ PYBIND11_MODULE(xsum, m) {
       .def("reset", &py_xsum_large::xsum_large::reset,
            "Replace the xsum_large_accumulator object")
       .def("init", &py_xsum_large::xsum_large::init,
-           "Initilize the xsum_large_accumulator object")
+           "Initialize the xsum_large_accumulator object")
       .def("add",
            (void (py_xsum_large::xsum_large::*)(xsum_flt const)) &
                py_xsum_large::xsum_large::add,
@@ -325,6 +333,8 @@ PYBIND11_MODULE(xsum, m) {
            "Add a squared norm of vector of values to the superaccumulator.")
       .def("add_dot", &py_xsum_large::add_dot,
            "Add dot product of two vectors of values to the superaccumulator.")
+      .def("negate", &py_xsum_large::xsum_large::negate,
+           "Negate the value in the superaccumulator.")
       .def("round", &py_xsum_large::xsum_large::round,
            "Return the results of rounding the superaccumulator.")
       .def("round_to_small",
