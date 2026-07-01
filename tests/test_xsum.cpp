@@ -1,4 +1,4 @@
-/* Copyright 2015, 2018 Radford M. Neal
+/* Copyright 2015, 2018, 2021, 2024 Radford M. Neal
 
    Permission is hereby granted, free of charge, to any person obtaining
    a copy of this software and associated documentation files (the
@@ -21,7 +21,7 @@
 */
 
 //
-// Copyright (c) 2020, Regents of the University of Minnesota.
+// Copyright (c) 2020-2026, Regents of the University of Minnesota.
 // All rights reserved.
 //
 // Contributors:
@@ -780,7 +780,7 @@ int main(int argc, char **argv) {
   std::printf("\nH: SMALL CLASS VECTOR METHOD TESTS\n");
 
   {
-    constexpr int n = XSUM_SMALL_CARRY_TERMS + 53;
+    constexpr int n = XSUM_SMALL_CARRY_TERMS + 54;
 
     std::vector<xsum_flt> vec1;
     std::vector<xsum_flt> vec2;
@@ -834,6 +834,36 @@ int main(int argc, char **argv) {
     xsum_small dot_vector;
     dot_vector.add_dot(vec1, vec2);
     result(dot_vector.get(), dot, 5);
+  }
+
+  std::printf("\nI: ODD LENGTH DOT PRODUCT TESTS\n");
+
+  {
+    constexpr int n = 5;
+    xsum_flt const vec1[n] = {1.0e100, -1.0e100, 0.25, -0.5, 7.0};
+    xsum_flt const vec2[n] = {1.0, 1.0, 4.0, -2.0, 3.0};
+
+    xsum_small expected_acc;
+    for (int i = 0; i < n; ++i) {
+      expected_acc.add(vec1[i] * vec2[i]);
+    }
+    double const dot = expected_acc.round();
+
+    xsum_small_accumulator sacc;
+    xsum_add_dot(&sacc, vec1, vec2, n);
+    result(&sacc, dot, 0);
+
+    xsum_large_accumulator lacc;
+    xsum_add_dot(&lacc, vec1, vec2, n);
+    result(&lacc, dot, 1);
+
+    xsum_small small;
+    small.add_dot(vec1, vec2, n);
+    result(small.get(), dot, 2);
+
+    xsum_large large;
+    large.add_dot(vec1, vec2, n);
+    result(large.get(), dot, 3);
   }
 
   if (small_test_fails || large_test_fails) {

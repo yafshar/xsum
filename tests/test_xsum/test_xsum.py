@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020, Regents of the University of Minnesota.
+# Copyright (c) 2020-2026, Regents of the University of Minnesota.
 # All rights reserved.
 #
 # Contributors:
@@ -601,7 +601,7 @@ class XSUMModule:
         """H: SMALL CLASS VECTOR METHOD TESTS"""
 
         msg = "H: SMALL CLASS VECTOR METHOD TESTS"
-        n = 2100
+        n = 2101
 
         idx = np.arange(n, dtype=np.float64)
         sign = np.where((idx.astype(np.int64) % 2) == 0, 1.0, -1.0)
@@ -649,6 +649,34 @@ class XSUMModule:
         dot_template = xsum_small_accumulator()
         xsum_add_dot(dot_template, vec1, vec2)
         self.assertTrue(result(dot_template, dot_result, 5, msg))
+
+    def test_odd_length_dot_product(self):
+        """I: ODD LENGTH DOT PRODUCT TESTS"""
+
+        msg = "I: ODD LENGTH DOT PRODUCT TESTS"
+        vec1 = np.array([1.0e100, -1.0e100, 0.25, -0.5, 7.0])
+        vec2 = np.array([1.0, 1.0, 4.0, -2.0, 3.0])
+
+        expected = xsum_small()
+        for i in range(len(vec1)):
+            expected.add(vec1[i] * vec2[i])
+        dot = expected.round()
+
+        sacc = xsum_small_accumulator()
+        xsum_add_dot(sacc, vec1, vec2)
+        self.assertTrue(result(sacc, dot, 0, msg))
+
+        lacc = xsum_large_accumulator()
+        xsum_add_dot(lacc, vec1, vec2)
+        self.assertTrue(result(lacc, dot, 1, msg))
+
+        small = xsum_small()
+        small.add_dot(vec1, vec2)
+        self.assertTrue(result(small, dot, 2, msg))
+
+        large = xsum_large()
+        large.add_dot(vec1, vec2)
+        self.assertTrue(result(large, dot, 3, msg))
 
 
 class TestXSUMModule(XSUMModule, unittest.TestCase):
