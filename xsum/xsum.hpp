@@ -76,6 +76,7 @@
 
 #include <algorithm>
 #include <bitset>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -96,8 +97,8 @@ using xsum_int = std::int64_t;
 using xsum_uint = std::uint64_t;
 /*! Integer type for holding an exponent */
 using xsum_expint = std::int_fast16_t;
-/*! TYPE FOR LENGTHS OF ARRAYS.  Must be a signed integer type. */
-using xsum_length = int;
+/*! Type for array lengths; signed, pointer-sized, but not unnecessarily big. */
+using xsum_length = std::ptrdiff_t;
 /*! Integer type of small accumulator chunk */
 using xsum_schunk = std::int64_t;
 /*! Integer type of large accumulator chunk, must be EXACTLY 64 bits in size */
@@ -756,7 +757,8 @@ void xsum_small::add(xsum_flt const *v, xsum_length const n) {
       carry_propagate();
     }
 
-    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
+    xsum_length const m =
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_no_carry(vec, m + 1);
 
@@ -783,7 +785,8 @@ void xsum_small::add(std::vector<xsum_flt> const &v) {
       carry_propagate();
     }
 
-    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
+    xsum_length const m =
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_no_carry(vec, m + 1);
 
@@ -810,7 +813,8 @@ void xsum_small::add_sqnorm(xsum_flt const *v, xsum_length const n) {
       carry_propagate();
     }
 
-    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
+    xsum_length const m =
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_sqnorm_no_carry(vec, m + 1);
 
@@ -838,7 +842,8 @@ void xsum_small::add_sqnorm(std::vector<xsum_flt> const &v) {
       carry_propagate();
     }
 
-    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
+    xsum_length const m =
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_sqnorm_no_carry(vec, m + 1);
 
@@ -868,7 +873,8 @@ void xsum_small::add_dot(xsum_flt const *v1, xsum_flt const *v2,
       carry_propagate();
     }
 
-    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
+    xsum_length const m =
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_dot_no_carry(vec1, vec2, m + 1);
 
@@ -901,7 +907,8 @@ void xsum_small::add_dot(std::vector<xsum_flt> const &v1,
       carry_propagate();
     }
 
-    xsum_length const m = std::min(c - 1, _sacc->adds_until_propagate);
+    xsum_length const m =
+      std::min(c - 1, static_cast<xsum_length>(_sacc->adds_until_propagate));
 
     add_dot_no_carry(vec1, vec2, m + 1);
 
