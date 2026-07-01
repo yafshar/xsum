@@ -239,7 +239,8 @@ PYBIND11_MODULE(xsum, m) {
         "Negate the value in a small superaccumulator.");
 
   m.def("xsum_negate", &xsum_negate<xsum_large_accumulator>,
-        "Negate the value in a large superaccumulator.");
+        "Negate the value in a large superaccumulator in place; pending large "
+        "chunks are collapsed into the embedded small accumulator.");
 
   m.def("xsum_round", &xsum_round<xsum_small_accumulator>,
         "Return the results of rounding the superaccumulator.");
@@ -264,10 +265,12 @@ PYBIND11_MODULE(xsum, m) {
         "Return the result of dividing a small superaccumulator by a signed integer.");
 
   m.def("xsum_large_div_unsigned", &xsum_large_div_unsigned,
-        "Return the result of dividing a large superaccumulator by an unsigned integer.");
+        "Return the result of dividing a large superaccumulator by an unsigned integer; "
+        "pending large chunks are collapsed into the embedded small accumulator.");
 
   m.def("xsum_large_div_int", &xsum_large_div_int,
-        "Return the result of dividing a large superaccumulator by a signed integer.");
+        "Return the result of dividing a large superaccumulator by a signed integer; "
+        "pending large chunks are collapsed into the embedded small accumulator.");
 
   m.def("print_binary", &print_binary<double>,
         "Print double precision floating point value in binary.");
@@ -356,11 +359,14 @@ PYBIND11_MODULE(xsum, m) {
       .def("add_dot", &py_xsum_large::add_dot,
            "Add dot product of two vectors of values to the superaccumulator.")
       .def("negate", &py_xsum_large::xsum_large::negate,
-           "Negate the value in the superaccumulator.")
+           "Negate the value in the superaccumulator in place; pending large chunks are "
+           "collapsed into the embedded small accumulator.")
       .def("div_unsigned", &py_xsum_large::xsum_large::div_unsigned,
-           "Return the result of dividing the superaccumulator by an unsigned integer.")
+           "Return the result of dividing the superaccumulator by an unsigned integer; "
+           "pending large chunks are collapsed into the embedded small accumulator.")
       .def("div_int", &py_xsum_large::xsum_large::div_int,
-           "Return the result of dividing the superaccumulator by a signed integer.")
+           "Return the result of dividing the superaccumulator by a signed integer; "
+           "pending large chunks are collapsed into the embedded small accumulator.")
       .def("round", &py_xsum_large::xsum_large::round,
            "Return the results of rounding the superaccumulator.")
       .def("round_to_small",
