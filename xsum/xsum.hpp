@@ -1,4 +1,4 @@
-/* Copyright 2015, 2018 Radford M. Neal
+/* Copyright 2015, 2018, 2021, 2024 Radford M. Neal
 
    Permission is hereby granted, free of charge, to any person obtaining
    a copy of this software and associated documentation files (the
@@ -45,7 +45,7 @@
 //
 
 //
-// Copyright (c) 2020, Regents of the University of Minnesota.
+// Copyright (c) 2020-2026, Regents of the University of Minnesota.
 // All rights reserved.
 //
 // Contributors:

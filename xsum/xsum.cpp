@@ -25,7 +25,7 @@
 // This file contains the XSUM Python bindings using pybind11
 
 //
-// Copyright (c) 2020, Regents of the University of Minnesota.
+// Copyright (c) 2020-2026, Regents of the University of Minnesota.
 // All rights reserved.
 //
 // Contributors:
