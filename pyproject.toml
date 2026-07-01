@@ -11,5 +11,5 @@ build-backend = "setuptools.build_meta"
 VCS = "git"
 style = "pep440"
 versionfile_source = "xsum/_version.py"
+tag_prefix = "v"
 parentdir_prefix = "xsum-"
-

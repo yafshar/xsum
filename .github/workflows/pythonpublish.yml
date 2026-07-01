@@ -37,6 +37,6 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
-        python -m build
-        twine check dist/*
-        twine upload dist/*
+        python -m build --sdist
+        twine check dist/*.tar.gz
+        twine upload dist/*.tar.gz
