@@ -4134,15 +4134,15 @@ inline void xsum_add_no_carry<xsum_small_accumulator>(
     }
     return;
   }
-  if (value->NaN != 0 || sacc->NaN != 0) {
-    if (value->NaN != 0) {
-      if ((sacc->NaN & XSUM_MANTISSA_MASK) <
-          (value->NaN & XSUM_MANTISSA_MASK)) {
-        sacc->NaN = value->NaN;
-      }
+
+  if (value->NaN != 0) {
+    if ((sacc->NaN & XSUM_MANTISSA_MASK) <
+        (value->NaN & XSUM_MANTISSA_MASK)) {
+      sacc->NaN = value->NaN;
     }
     return;
   }
+
   xsum_schunk *sacc_chunk = sacc->chunk;
   xsum_schunk const *const value_chunk = value->chunk;
   for (int i = 0; i < XSUM_SCHUNKS; ++i) {

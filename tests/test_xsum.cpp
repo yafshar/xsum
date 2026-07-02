@@ -377,7 +377,20 @@ int main(int argc, char **argv) {
     result(&sacc, s, 3);
   }
 
-  std::printf("\nA4: INTEGER DIVISION TESTS\n");
+  std::printf("\nA4: SPECIAL ACCUMULATOR MERGE TESTS\n");
+
+  {
+    xsum_small_accumulator dst_nan;
+    xsum_small_accumulator src_finite;
+    xsum_add(&dst_nan, 0.0 / 0.0);
+    xsum_add(&src_finite, 1.0);
+    xsum_add(&src_finite, 2.0);
+    xsum_add(&dst_nan, &src_finite);
+    dst_nan.NaN = 0;
+    result(&dst_nan, 3.0, 0);
+  }
+
+  std::printf("\nA5: INTEGER DIVISION TESTS\n");
 
   {
     auto check_small_div = [](double const r, double const s, int const i) {
